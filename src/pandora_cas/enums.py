@@ -96,8 +96,8 @@ class CommandID(IntEnum):
     CLIMATE_SEAT_HEAT_TURN_OFF = 58626  # Выкл. подогрев сидений
     CLIMATE_SEAT_VENT_TURN_ON = 58627  # Вкл. вентиляцию сидений
     CLIMATE_SEAT_VENT_TURN_OFF = 58628  # Выкл. подогрев сидений
-    CLIMATE_WINDOW_HEAT_TURN_ON = 58629  # Вкл. подогрев окон и зеркал
-    CLIMATE_WINDOW_HEAT_TURN_OFF = 58630  # Выкл. подогрев окон и зеркал
+    CLIMATE_GLASS_HEAT_TURN_ON = 58629  # Вкл. подогрев окон и зеркал
+    CLIMATE_GLASS_HEAT_TURN_OFF = 58630  # Выкл. подогрев окон и зеркал
     CLIMATE_STEERING_HEAT_TURN_ON = 58631  # Вкл. подогрев руля
     CLIMATE_STEERING_HEAT_TURN_OFF = 58632  # Выкл. подогрев руля
     CLIMATE_AC_TURN_ON = 58633  # Вкл. кондиционер

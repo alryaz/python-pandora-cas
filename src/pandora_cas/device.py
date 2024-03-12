@@ -271,7 +271,6 @@ class PandoraOnlineDevice:
 
     # Climate commands
 
-
     @property
     def control_busy(self) -> bool:
         """Returns whether device is currently busy executing command."""

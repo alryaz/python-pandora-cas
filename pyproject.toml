@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pandora-cas"
-version = "0.0.2"
+version = "0.0.3"
 description = "Pandora Car Alarm System clientside API implementation"
 authors = ["Alexander Ryazanov <alryaz@alryaz.com>"]
 readme = "README.md"
@@ -21,12 +21,12 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
+packages = [
+    { include = "pandora_cas", from = "src" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-
-[tool.poetry.dev-dependencies]
-check-manifest = "^0.0"
 
 [tool.poetry.urls]
 "Bug Reports" = "https://github.com/alryaz/python-pandora-cas/issues"
