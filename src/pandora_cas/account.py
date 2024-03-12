@@ -422,7 +422,7 @@ class PandoraOnlineAccount:
         data = {"id": device_id, "command": int(command_id)}
 
         if params:
-            data["comm_params"] = dict(params)
+            data["comm_params"] = json.dumps(dict(params))
 
         async with self._session.post(
             self.BASE_URL + "/api/devices/command",
