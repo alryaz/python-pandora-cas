@@ -162,8 +162,8 @@ class PandoraOnlineDevice:
     async def async_remote_command(
         self,
         command_id: int | CommandID,
-        ensure_complete: bool = True,
         params: Mapping[str, Any] | None = None,
+        ensure_complete: bool = True,
     ):
         """Proxy method to execute commands on corresponding vehicle object"""
         if self._current_state is None:
@@ -192,82 +192,96 @@ class PandoraOnlineDevice:
 
     # Lock/unlock toggles
     async def async_remote_lock(self, ensure_complete: bool = True):
-        return await self.async_remote_command(CommandID.LOCK, ensure_complete)
+        return await self.async_remote_command(
+            CommandID.LOCK, ensure_complete=ensure_complete
+        )
 
     async def async_remote_unlock(self, ensure_complete: bool = True):
-        return await self.async_remote_command(CommandID.UNLOCK, ensure_complete)
+        return await self.async_remote_command(
+            CommandID.UNLOCK, ensure_complete=ensure_complete
+        )
 
     # Engine toggle
     async def async_remote_start_engine(self, ensure_complete: bool = True):
-        return await self.async_remote_command(CommandID.START_ENGINE, ensure_complete)
+        return await self.async_remote_command(
+            CommandID.START_ENGINE, ensure_complete=ensure_complete
+        )
 
     async def async_remote_stop_engine(self, ensure_complete: bool = True):
-        return await self.async_remote_command(CommandID.STOP_ENGINE, ensure_complete)
+        return await self.async_remote_command(
+            CommandID.STOP_ENGINE, ensure_complete=ensure_complete
+        )
 
     # Tracking toggle
     async def async_remote_enable_tracking(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.ENABLE_TRACKING, ensure_complete
+            CommandID.ENABLE_TRACKING, ensure_complete=ensure_complete
         )
 
     async def async_remote_disable_tracking(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.DISABLE_TRACKING, ensure_complete
+            CommandID.DISABLE_TRACKING, ensure_complete=ensure_complete
         )
 
     # Active security toggle
     async def async_enable_active_security(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.ENABLE_ACTIVE_SECURITY, ensure_complete
+            CommandID.ENABLE_ACTIVE_SECURITY, ensure_complete=ensure_complete
         )
 
     async def async_disable_active_security(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.DISABLE_ACTIVE_SECURITY, ensure_complete
+            CommandID.DISABLE_ACTIVE_SECURITY, ensure_complete=ensure_complete
         )
 
     # Coolant heater toggle
     async def async_remote_turn_on_coolant_heater(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.TURN_ON_BLOCK_HEATER, ensure_complete
+            CommandID.TURN_ON_BLOCK_HEATER, ensure_complete=ensure_complete
         )
 
     async def async_remote_turn_off_coolant_heater(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.TURN_OFF_BLOCK_HEATER, ensure_complete
+            CommandID.TURN_OFF_BLOCK_HEATER, ensure_complete=ensure_complete
         )
 
     # External (timer_ channel toggle
     async def async_remote_turn_on_ext_channel(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.TURN_ON_EXT_CHANNEL, ensure_complete
+            CommandID.TURN_ON_EXT_CHANNEL, ensure_complete=ensure_complete
         )
 
     async def async_remote_turn_off_ext_channel(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.TURN_OFF_EXT_CHANNEL, ensure_complete
+            CommandID.TURN_OFF_EXT_CHANNEL, ensure_complete=ensure_complete
         )
 
     # Service mode toggle
     async def async_remote_enable_service_mode(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.ENABLE_SERVICE_MODE, ensure_complete
+            CommandID.ENABLE_SERVICE_MODE, ensure_complete=ensure_complete
         )
 
     async def async_remote_disable_service_mode(self, ensure_complete: bool = True):
         return await self.async_remote_command(
-            CommandID.DISABLE_SERVICE_MODE, ensure_complete
+            CommandID.DISABLE_SERVICE_MODE, ensure_complete=ensure_complete
         )
 
     # Various commands
     async def async_remote_trigger_horn(self, ensure_complete: bool = True):
-        return await self.async_remote_command(CommandID.TRIGGER_HORN, ensure_complete)
+        return await self.async_remote_command(
+            CommandID.TRIGGER_HORN, ensure_complete=ensure_complete
+        )
 
     async def async_remote_trigger_light(self, ensure_complete: bool = True):
-        return await self.async_remote_command(CommandID.TRIGGER_LIGHT, ensure_complete)
+        return await self.async_remote_command(
+            CommandID.TRIGGER_LIGHT, ensure_complete=ensure_complete
+        )
 
     async def async_remote_trigger_trunk(self, ensure_complete: bool = True):
-        return await self.async_remote_command(CommandID.TRIGGER_TRUNK, ensure_complete)
+        return await self.async_remote_command(
+            CommandID.TRIGGER_TRUNK, ensure_complete=ensure_complete
+        )
 
     # Climate commands
 
