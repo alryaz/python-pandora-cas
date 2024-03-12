@@ -633,7 +633,7 @@ class PandoraOnlineAccount:
                 f"Received data update from HTTP for device {device.device_id}: {data_stats}"
             )
             update_args.update(
-                **CurrentState.get_common_dict_args(
+                **CurrentState.get_http_state_args(
                     data_stats,
                     identifier=device.device_id,
                 ),

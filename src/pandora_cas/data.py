@@ -7,6 +7,8 @@ __all__ = (
 )
 
 import logging
+from abc import ABC
+from collections import ChainMap
 from time import time
 from typing import (
     Mapping,
@@ -17,6 +19,8 @@ from typing import (
     MutableMapping,
     Collection,
     Final,
+    Callable,
+    Type,
 )
 
 import attr
@@ -25,58 +29,71 @@ from .enums import PrimaryEventID, BitStatus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-
-@attr.s(frozen=True, slots=True)
-class BalanceState:
-    value: float = attr.ib(converter=float)
-    currency: str = attr.ib()
-
-    def __float__(self) -> float:
-        return self.value
-
-    def __int__(self) -> int:
-        return int(self.value)
-
-    def __round__(self, n=None):
-        return round(self.value, n)
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any | None]):
-        try:
-            if data:
-                return cls(
-                    value=data["value"],
-                    currency=data["cur"],
-                )
-        except (LookupError, TypeError, ValueError):
-            pass
-
-
-@attr.s(kw_only=True, frozen=True, slots=True)
-class FuelTank:
-    id: int = attr.ib()
-    value: float = attr.ib()
-    ras: float | None = attr.ib(default=None)
-    ras_t: float | None = attr.ib(default=None)
-
-    def __float__(self) -> float:
-        return self.value
-
-    def __int__(self) -> int:
-        return int(self.value)
-
-    def __round__(self, n=None):
-        return round(self.value, n)
-
-
 _T = TypeVar("_T")
+_TKwargs = TypeVar("_TKwargs", bound=MutableMapping[str, Any])
+_S: Final = "source_value_identifier"
+_TFieldName = str | tuple[str, ...]
 
 
-def _e(x: _T) -> _T | None:
+# noinspection PyTypeHints
+def field(
+    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
+):
+    if isinstance(field_name, str):
+        field_name = (field_name,)
+    return attr.field(
+        metadata={_S: field_name},
+        converter=converter,
+        **kwargs,
+    )
+
+
+# noinspection PyTypeHints
+def field_opt(
+    field_name: _TFieldName,
+    converter: Callable[[Any], Any] | None = attr.NOTHING,
+    **kwargs,
+):
+    kwargs.setdefault("default", None)
+    if converter is not None:
+        kwargs["converter"] = lambda x: None if x is None else converter(x)
+    return field(field_name, **kwargs)
+
+
+def value_or_none(x: _T) -> _T | None:
     return x or None
 
 
-def _f(x: SupportsFloat | None) -> float | None:
+def field_emp(
+    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
+):
+    kwargs.setdefault("default", None)
+    if converter is not None:
+        kwargs["converter"] = lambda x: converter(x) if x else None
+    return field(field_name, **kwargs)
+
+
+def bool_or_none(x: Any) -> bool | None:
+    return None if x is None else bool(x)
+
+
+def field_bool(field_name: _TFieldName, **kwargs):
+    return field_opt(field_name, bool_or_none, **kwargs)
+
+
+def int_or_none(x: SupportsInt | None) -> int | None:
+    try:
+        return None if x is None else int(x)
+    except (TypeError, ValueError):
+        _LOGGER.warning(f"Could not convert value '{x}' to int, returning None")
+        return None
+
+
+def field_int(field_name: _TFieldName, **kwargs):
+    return field_opt(field_name, int_or_none, **kwargs)
+
+
+def float_or_none(x: SupportsFloat | None) -> float | None:
     try:
         return None if x is None else float(x)
     except (TypeError, ValueError):
@@ -84,16 +101,86 @@ def _f(x: SupportsFloat | None) -> float | None:
         return None
 
 
-def _b(x: Any) -> bool | None:
-    return None if x is None else bool(x)
+def field_float(field_name: _TFieldName, **kwargs):
+    return field_opt(field_name, float_or_none, **kwargs)
 
 
-def _i(x: SupportsInt | None) -> int | None:
-    try:
-        return None if x is None else int(x)
-    except (TypeError, ValueError):
-        _LOGGER.warning(f"Could not convert value '{x}' to int, returning None")
-        return None
+@attr.s(kw_only=True, frozen=True, slots=True)
+class _BaseGetDictArgs(ABC):
+    @classmethod
+    def get_dict_args(cls, data: Mapping[str, Any], **kwargs) -> _TKwargs:
+        all_keys = set(data.keys())
+        # noinspection PyTypeChecker
+        for attrib in attr.fields(cls):
+            try:
+                keys = attrib.metadata[_S]
+            except KeyError:
+                continue
+            all_keys.difference_update(keys)
+            if attrib.name in kwargs:
+                continue
+            for key in keys:
+                if key in data:
+                    kwargs[attrib.name] = data[key]
+                    break
+
+        name = cls.__class__.__name__
+        if all_keys:
+            _LOGGER.info(
+                f"[{name}] New attributes detected! Please, report this to the developer ASAP."
+            )
+            for key in all_keys:
+                _LOGGER.info(f"[{name}]  {key} ({type(data[key])}) = {repr(data[key])}")
+        else:
+            _LOGGER.debug(f"[{name}] All available attributes processed")
+
+        return kwargs
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any], **kwargs):
+        kwargs.update(cls.get_dict_args(data, **kwargs))
+        # noinspection PyArgumentList
+        return cls(**kwargs)
+
+    @classmethod
+    def conv(cls, x: Any):
+        return x if isinstance(x, cls) else cls.from_dict(x)
+
+    @classmethod
+    def conv_list(cls, x: Any):
+        return tuple(map(cls.conv, x))
+
+
+@attr.s(frozen=True, slots=True)
+class BalanceState(_BaseGetDictArgs):
+    value: float = field_float("value", default=0.0)
+    currency: str | None = field_emp("cur")
+
+    def __float__(self) -> float:
+        return self.value
+
+    def __int__(self) -> int:
+        return int(self.value)
+
+    def __round__(self, n=None):
+        return round(self.value, n)
+
+
+@attr.s(kw_only=True, frozen=True, slots=True)
+class FuelTank:
+    id: int = attr.ib(metadata={_S: "id"})
+    value: float = attr.ib(metadata={_S: "value"})
+    ras: float | None = field_float("")
+    ras_t: float | None = field_float("")
+
+    def __float__(self) -> float:
+        return self.value
+
+    def __int__(self) -> int:
+        return int(self.value)
+
+    def __round__(self, n=None):
+        return round(self.value, n)
 
 
 def _degrees_to_direction(degrees: float):
@@ -118,282 +205,145 @@ def _degrees_to_direction(degrees: float):
     return sides[round(degrees / (360 / len(sides))) % len(sides)]
 
 
-_TKwargs = TypeVar("_TKwargs", bound=MutableMapping[str, Any])
+def from_dict_wrap(cls: Type[_BaseGetDictArgs]):
+    return lambda x: x if isinstance(x, cls) else cls.from_dict(x)
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
-class CurrentState:
-    identifier: int = attr.ib(converter=int)
-    is_online: bool | None = attr.ib(default=None)
-    latitude: float | None = attr.ib(default=None, converter=_f)
-    longitude: float | None = attr.ib(default=None, converter=_f)
-    speed: float | None = attr.ib(default=None, converter=_f)
-    bit_state: BitStatus | None = attr.ib(default=None)
-    engine_rpm: int | None = attr.ib(default=None, converter=_i)
-    engine_temperature: float | None = attr.ib(default=None, converter=_f)
-    interior_temperature: float | None = attr.ib(default=None, converter=_f)
-    exterior_temperature: float | None = attr.ib(default=None, converter=_f)
-    fuel: float | None = attr.ib(default=None, converter=_f)
-    voltage: float | None = attr.ib(default=None, converter=_f)
-    gsm_level: int | None = attr.ib(default=None, converter=_i)
-    balance: BalanceState | None = attr.ib(default=None)
-    balance_other: BalanceState | None = attr.ib(default=None)
-    mileage: float | None = attr.ib(default=None, converter=_f)
-    can_mileage: float | None = attr.ib(default=None, converter=_f)
-    tag_number: int | None = attr.ib(default=None, converter=_i)
-    key_number: int | None = attr.ib(default=None, converter=_i)
-    relay: int | None = attr.ib(default=None, converter=_i)
-    is_moving: bool | None = attr.ib(default=None, converter=_b)
-    is_evacuating: bool | None = attr.ib(default=None, converter=_b)
-    lock_latitude: float | None = attr.ib(default=None, converter=_f)
-    lock_longitude: float | None = attr.ib(default=None, converter=_f)
-    rotation: float | None = attr.ib(default=None, converter=_f)
-    phone: str | None = attr.ib(default=None, converter=_e)
-    imei: int | None = attr.ib(default=None, converter=_e)
-    phone_other: str | None = attr.ib(default=None, converter=_e)
-    active_sim: int | None = attr.ib(default=None)
-    tracking_remaining: float | None = attr.ib(default=None, converter=_e)
+class SimCard(_BaseGetDictArgs):
+    phone: str = field("phoneNumber")
+    is_active: bool = field("isActive", bool)
+    balance: BalanceState | None = field_emp("balance", from_dict_wrap(BalanceState))
 
-    can_seat_taken: bool | None = attr.ib(default=None)
-    can_average_speed: float | None = attr.ib(default=None)
-    can_consumption: float | None = attr.ib(default=None)
-    can_consumption_after: float | None = attr.ib(default=None)
-    can_need_pads_exchange: bool | None = attr.ib(default=None)
-    can_days_to_maintenance: int | None = attr.ib(default=None)
-    can_tpms_front_left: float | None = attr.ib(default=None)
-    can_tpms_front_right: float | None = attr.ib(default=None)
-    can_tpms_back_left: float | None = attr.ib(default=None)
-    can_tpms_back_right: float | None = attr.ib(default=None)
-    can_tpms_reserve: float | None = attr.ib(default=None)
-    can_glass_driver: bool | None = attr.ib(default=None)
-    can_glass_passenger: bool | None = attr.ib(default=None)
-    can_glass_back_left: bool | None = attr.ib(default=None)
-    can_glass_back_right: bool | None = attr.ib(default=None)
-    can_belt_driver: bool | None = attr.ib(default=None)
-    can_belt_passenger: bool | None = attr.ib(default=None)
-    can_belt_back_left: bool | None = attr.ib(default=None)
-    can_belt_back_right: bool | None = attr.ib(default=None)
-    can_belt_back_center: bool | None = attr.ib(default=None)
-    can_low_liquid: bool | None = attr.ib(default=None)
-    can_mileage_by_battery: float | None = attr.ib(default=None)
-    can_mileage_to_empty: float | None = attr.ib(default=None)
-    can_mileage_to_maintenance: float | None = attr.ib(default=None)
 
-    ev_state_of_charge: float | None = attr.ib(default=None)
-    ev_state_of_health: float | None = attr.ib(default=None)
-    ev_charging_connected: bool | None = attr.ib(default=None)
-    ev_charging_slow: bool | None = attr.ib(default=None)
-    ev_charging_fast: bool | None = attr.ib(default=None)
-    ev_status_ready: bool | None = attr.ib(default=None)
-    battery_temperature: int | None = attr.ib(default=None)
+def lock_lat_lng_conv(x: Any):
+    return float(x) / 1000000
+
+
+@attr.s(kw_only=True, frozen=True, slots=True)
+class CurrentState(_BaseGetDictArgs):
+    identifier: int = field(("dev_id", "id"), int)
+
+    active_sim: int | None = field_int("active_sim")
+    balance: BalanceState | None = field_emp("balance", BalanceState.conv)
+    balance_other: BalanceState | None = field_emp("balance1", BalanceState.conv)
+    bit_state: BitStatus | None = field_opt("bit_state_1", lambda x: BitStatus(int(x)))
+    can_mileage: float | None = field_float("mileage_CAN")
+    engine_rpm: int | None = field_int("engine_rpm")
+    engine_temperature: float | None = field_float("engine_temp")
+    exterior_temperature: float | None = field_float("out_temp")
+    fuel: float | None = field_float("fuel")
+    gsm_level: int | None = field_int("gsm_level")
+    imei: int | None = field_int("")
+    interior_temperature: float | None = field_float("cabin_temp")
+    is_evacuating: bool | None = field_bool("evaq")
+    is_moving: bool | None = field_bool("move")
+    is_online: bool | None = field_bool("online_mode")
+    key_number: int | None = field_int("brelok")
+    latitude: float | None = field_float("x")
+    lock_latitude: float | None = field_opt("lock_x", lock_lat_lng_conv)
+    lock_longitude: float | None = field_opt("lock_y", lock_lat_lng_conv)
+    longitude: float | None = field_float("y")
+    mileage: float | None = field_float("mileage")
+    phone: str | None = field_emp("phone")
+    phone_other: str | None = field_emp("phone1")
+    relay: int | None = field_int("relay")
+    rotation: float | None = field_float("rot")
+    speed: float | None = field_float("speed")
+    tag_number: int | None = field_int("metka")
+    tracking_remaining: float | None = field_float("track_remains")
+    voltage: float | None = field_float("voltage")
+
+    can_belt_back_center: bool | None = field_bool("CAN_back_center_belt")
+    can_belt_back_left: bool | None = field_bool("CAN_back_left_belt")
+    can_belt_back_right: bool | None = field_bool("CAN_back_right_belt")
+    can_belt_driver: bool | None = field_bool("CAN_driver_belt")
+    can_belt_passenger: bool | None = field_bool("CAN_passenger_belt")
+    can_glass_back_left: bool | None = field_bool("CAN_back_left_glass")
+    can_glass_back_right: bool | None = field_bool("CAN_back_right_glass")
+    can_glass_driver: bool | None = field_bool("CAN_driver_glass")
+    can_glass_passenger: bool | None = field_bool("CAN_passenger_glass")
+    can_tpms_back_left: float | None = field_float("CAN_TMPS_forvard_left")
+    can_tpms_back_right: float | None = field_float("CAN_TMPS_forvard_right")
+    can_tpms_front_left: float | None = field_float("CAN_TMPS_back_left")
+    can_tpms_front_right: float | None = field_float("CAN_TMPS_back_right")
+    can_tpms_reserve: float | None = field_float("CAN_TMPS_reserve")
+
+    can_average_speed: float | None = field_float("CAN_average_speed")
+    can_consumption: float | None = field_float("CAN_consumption")
+    can_consumption_after: float | None = field_float("CAN_consumption_after")
+    can_days_to_maintenance: int | None = field_int("CAN_days_to_maintenance")
+    can_low_liquid: bool | None = field_bool("CAN_low_liquid")
+    can_mileage_by_battery: float | None = field_float("CAN_mileage_by_battery")
+    can_mileage_to_empty: float | None = field_float("CAN_mileage_to_empty")
+    can_mileage_to_maintenance: float | None = field_float("CAN_mileage_to_maintenance")
+    can_need_pads_exchange: bool | None = field_bool("CAN_need_pads_exchange")
+    can_seat_taken: bool | None = field_bool("CAN_seat_taken")
+
+    ev_state_of_charge: float | None = field_float("SOC")
+    ev_state_of_health: float | None = field_float("SOH")
+    ev_charging_connected: bool | None = field_bool("charging_connect")
+    ev_charging_slow: bool | None = field_bool("charging_slow")
+    ev_charging_fast: bool | None = field_bool("charging_fast")
+    ev_status_ready: bool | None = field_bool("ev_status_ready")
+    battery_temperature: int | None = field_int("battery_temperature")
 
     # undecoded parameters
-    smeter: int | None = attr.ib(default=None)
-    tconsum: int | None = attr.ib(default=None)
-    loadaxis: Any = attr.ib(default=None)
-    land: int | None = attr.ib(default=None)
-    bunker: int | None = attr.ib(default=None)
-    ex_status: int | None = attr.ib(default=None)
+    # smeter: int | None = field_int("smeter")
+    # tconsum: int | None = field_int("tconsum")
+    # loadaxis: Any = attr.ib(default=None, metadata={_S: "loadaxis"})
+    # land: int | None = field_int("land")
+    bunker: int | None = field_int("bunker")
+    ex_status: int | None = field_int("ex_status")
     fuel_tanks: Collection[FuelTank] = attr.ib(default=())
+    sims: Collection[SimCard] = field_emp("sims", SimCard.conv_list, default=())
 
-    state_timestamp: int | None = attr.ib(default=None)
-    state_timestamp_utc: int | None = attr.ib(default=None)
-    online_timestamp: int | None = attr.ib(default=None)
-    online_timestamp_utc: int | None = attr.ib(default=None)
-    settings_timestamp_utc: int | None = attr.ib(default=None)
-    command_timestamp_utc: int | None = attr.ib(default=None)
-
-    @classmethod
-    def _merge_data_kwargs(
-        cls,
-        data: Mapping[str, Any],
-        kwargs: _TKwargs,
-        to_merge: Mapping[str, str],
-    ) -> _TKwargs:
-        for kwarg, key in to_merge.items():
-            if kwarg not in kwargs and key in data:
-                kwargs[kwarg] = data[key]
-        return kwargs
-
-    @classmethod
-    def get_common_dict_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
-        if "identifier" not in kwargs:
-            try:
-                device_id = data["dev_id"]
-            except KeyError:
-                device_id = data["id"]
-            kwargs["identifier"] = int(device_id)
-        if "active_sim" not in kwargs and "active_sim" in data:
-            kwargs["active_sim"] = data["active_sim"]
-        if "balance" not in kwargs and "balance" in data:
-            kwargs["balance"] = BalanceState.from_dict(data["balance"])
-        if "balance_other" not in kwargs and "balance1" in data:
-            kwargs["balance_other"] = BalanceState.from_dict(data["balance"])
-        if "bit_state" not in kwargs and "bit_state_1" in data:
-            kwargs["bit_state"] = BitStatus(int(data["bit_state_1"]))
-        if "key_number" not in kwargs and "brelok" in data:
-            kwargs["key_number"] = data["brelok"]
-        if "bunker" not in kwargs and "bunker" in data:
-            kwargs["bunker"] = data["bunker"]
-        if "interior_temperature" not in kwargs and "cabin_temp" in data:
-            kwargs["interior_temperature"] = data["cabin_temp"]
-        # dtime
-        # dtime_rec
-        if "engine_rpm" not in kwargs and "engine_rpm" in data:
-            kwargs["engine_rpm"] = data["engine_rpm"]
-        if "engine_temperature" not in kwargs and "engine_temp" in data:
-            kwargs["engine_temperature"] = data["engine_temp"]
-        if "is_evacuating" not in kwargs and "evaq" in data:
-            kwargs["is_evacuating"] = data["evaq"]
-        if "ex_status" not in kwargs and "ex_status" in data:
-            kwargs["ex_status"] = data["ex_status"]
-        if "fuel" not in kwargs and "fuel" in data:
-            kwargs["fuel"] = data["fuel"]
-        # land
-        # liquid_sensor
-        if "gsm_level" not in kwargs and "gsm_level" in data:
-            kwargs["gsm_level"] = data["gsm_level"]
-        if "tag_number" not in kwargs and "metka" in data:
-            kwargs["tag_number"] = data["metka"]
-        if "mileage" not in kwargs and "mileage" in data:
-            kwargs["mileage"] = data["mileage"]
-        if "can_mileage" not in kwargs and "mileage_CAN" in data:
-            kwargs["can_mileage"] = data["mileage_CAN"]
-        if "is_moving" not in kwargs and "move" in data:
-            kwargs["is_moving"] = data["move"]
-        # online -- different on HTTP, value not timestamp
-        if "exterior_temperature" not in kwargs and "out_temp" in data:
-            kwargs["exterior_temperature"] = data["out_temp"]
-        if "relay" not in kwargs and "relay" in data:
-            kwargs["relay"] = data["relay"]
-        if "rotation" not in kwargs and "rot" in data:
-            kwargs["rotation"] = data["rot"]
-        # smeter
-        if "speed" not in kwargs and "speed" in data:
-            kwargs["speed"] = data["speed"]
-        # tanks -- unknown for http
-        if "voltage" not in kwargs and "voltage" in data:
-            kwargs["voltage"] = data["voltage"]
-        if "latitude" not in kwargs and "x" in data:
-            kwargs["latitude"] = data["x"]
-        if "longitude" not in kwargs and "y" in data:
-            kwargs["longitude"] = data["y"]
-        return kwargs
-
-    @classmethod
-    def get_can_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
-        return cls._merge_data_kwargs(
-            data,
-            kwargs,
-            {
-                # Tire pressure
-                "can_tpms_front_left": "CAN_TMPS_forvard_left",
-                "can_tpms_front_right": "CAN_TMPS_forvard_right",
-                "can_tpms_back_left": "CAN_TMPS_back_left",
-                "can_tpms_back_right": "CAN_TMPS_back_right",
-                "can_tpms_reserve": "CAN_TMPS_reserve",
-                # Glasses
-                "can_glass_driver": "CAN_driver_glass",
-                "can_glass_passenger": "CAN_passenger_glass",
-                "can_glass_back_left": "CAN_back_left_glass",
-                "can_glass_back_right": "CAN_back_right_glass",
-                # Belts
-                "can_belt_driver": "CAN_driver_belt",
-                "can_belt_passenger": "CAN_passenger_belt",
-                "can_belt_back_left": "CAN_back_left_belt",
-                "can_belt_back_right": "CAN_back_right_belt",
-                "can_belt_back_center": "CAN_back_center_belt",
-                # Mileages (non-generic)
-                "can_mileage_by_battery": "CAN_mileage_by_battery",
-                "can_mileage_to_empty": "CAN_mileage_to_empty",
-                "can_mileage_to_maintenance": "CAN_mileage_to_maintenance",
-                # EV-related
-                "ev_charging_connected": "charging_connect",
-                "ev_charging_slow": "charging_slow",
-                "ev_charging_fast": "charging_fast",
-                "ev_state_of_charge": "SOC",
-                "ev_state_of_health": "SOH",
-                "ev_status_ready": "ev_status_ready",
-                "battery_temperature": "battery_temperature",
-                # Miscellaneous
-                "can_average_speed": "CAN_average_speed",
-                "can_low_liquid": "CAN_low_liquid",
-                "can_seat_taken": "CAN_seat_taken",
-                "can_consumption": "CAN_consumption",
-                "can_consumption_after": "CAN_consumption_after",
-                "can_need_pads_exchange": "CAN_need_pads_exchange",
-                "can_days_to_maintenance": "CAN_days_to_maintenance",
-            },
-        )
-
-    @classmethod
-    def get_ws_state_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
-        if "is_online" not in kwargs and "online_mode" in data:
-            kwargs["is_online"] = bool(data["online_mode"])
-        if "lock_latitude" not in kwargs and "lock_x" in data:
-            if (lock_x := data["lock_x"]) is not None:
-                lock_x = float(lock_x) / 1000000
-            kwargs["lock_latitude"] = lock_x
-        if "lock_longitude" not in kwargs and "lock_y" in data:
-            if (lock_y := data["lock_y"]) is not None:
-                lock_y = float(lock_y) / 1000000
-            kwargs["lock_longitude"] = lock_y / 1000000
-        # if "tanks" in data:
-        #     kwargs["fuel_tanks"] = FuelTank.parse_fuel_tanks(data["tanks"])
-        return cls._merge_data_kwargs(
-            data,
-            cls.get_common_dict_args(data, **cls.get_can_args(data, **kwargs)),
-            {
-                "state_timestamp": "state",
-                "state_timestamp_utc": "state_utc",
-                "online_timestamp": "online",
-                "online_timestamp_utc": "online_utc",
-                "settings_timestamp_utc": "setting_utc",
-                "command_timestamp_utc": "command_utc",
-                "active_sim": "active_sim",
-                "tracking_remaining": "track_remains",
-            },
-        )
-
-    @classmethod
-    def get_ws_point_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
-        # flags ...
-        # max_speed ...
-        # timezone ...
-        # Lbs_coords ...
-        return cls.get_common_dict_args(data, **kwargs)
-
-    @classmethod
-    def get_http_dict_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
-        # parse CAN data if present
-        if can := data.get("can"):
-            kwargs = cls.get_can_args(can, **kwargs)
-        return cls.get_common_dict_args(data, **kwargs)
+    state_timestamp: int | None = field_int("state")
+    state_timestamp_utc: int | None = field_int("state_utc")
+    online_timestamp: int | None = field_int("online")
+    online_timestamp_utc: int | None = field_int("online_utc")
+    settings_timestamp_utc: int | None = field_int("setting_utc")
+    command_timestamp_utc: int | None = field_int("command_utc")
 
     @property
     def direction(self) -> str:
         """Textual interpretation of rotation."""
         return _degrees_to_direction(self.rotation or 0.0)
 
+    @classmethod
+    def get_ws_state_args(cls, data: Mapping[str, Any], **kwargs) -> _TKwargs:
+        return cls.get_dict_args(data, **kwargs)
+
+    @classmethod
+    def get_http_state_args(cls, data: Mapping[str, Any], **kwargs) -> _TKwargs:
+        if can := data.get("can"):
+            # noinspection PyTypeChecker
+            data = ChainMap(can, data)
+        return cls.get_dict_args(data, **kwargs)
+
+    @classmethod
+    def get_ws_point_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
+        return cls.get_dict_args(data, **kwargs)
+
 
 @attr.s(kw_only=True, frozen=True, slots=True)
 class TrackingEvent:
-    identifier: int = attr.ib()
-    device_id: int = attr.ib()
-    bit_state: BitStatus = attr.ib()
-    cabin_temperature: float = attr.ib()
-    engine_rpm: float = attr.ib()
-    engine_temperature: float = attr.ib()
-    event_id_primary: int = attr.ib()
-    event_id_secondary: int = attr.ib()
-    fuel: int = attr.ib()
-    gsm_level: int = attr.ib()
-    exterior_temperature: int = attr.ib()
-    voltage: float = attr.ib()
-    latitude: float = attr.ib()
-    longitude: float = attr.ib()
-    timestamp: int = attr.ib()
-    recorded_timestamp: int = attr.ib()
+    identifier: int = attr.ib(metadata={_S: "identifier"})
+    device_id: int = attr.ib(metadata={_S: "device_id"})
+    bit_state: BitStatus = attr.ib(metadata={_S: "bit_state"})
+    cabin_temperature: float = attr.ib(metadata={_S: "cabin_temperature"})
+    engine_rpm: float = attr.ib(metadata={_S: "engine_rpm"})
+    engine_temperature: float = attr.ib(metadata={_S: "engine_temperature"})
+    event_id_primary: int = attr.ib(metadata={_S: "event_id_primary"})
+    event_id_secondary: int = attr.ib(metadata={_S: "event_id_secondary"})
+    fuel: int = attr.ib(metadata={_S: "fuel"})
+    gsm_level: int = attr.ib(metadata={_S: "gsm_level"})
+    exterior_temperature: int = attr.ib(metadata={_S: "exterior_temperature"})
+    voltage: float = attr.ib(metadata={_S: "voltage"})
+    latitude: float = attr.ib(metadata={_S: "latitude"})
+    longitude: float = attr.ib(metadata={_S: "longitude"})
+    timestamp: int = attr.ib(metadata={_S: "timestamp"})
+    recorded_timestamp: int = attr.ib(metadata={_S: "recorded_timestamp"})
 
     @property
     def primary_event_enum(self) -> PrimaryEventID:
@@ -446,12 +396,12 @@ class TrackingEvent:
 
 @attr.s(kw_only=True, frozen=True, slots=True)
 class TrackingPoint:
-    device_id: int = attr.ib()
-    latitude: float = attr.ib()
-    longitude: float = attr.ib()
-    track_id: int | None = attr.ib(default=None)
-    timestamp: float = attr.ib(default=time)
-    fuel: int | None = attr.ib(default=None)
-    speed: float | None = attr.ib(default=None)
-    max_speed: float | None = attr.ib(default=None)
-    length: float | None = attr.ib(default=None)
+    device_id: int = attr.ib(metadata={_S: "device_id"})
+    latitude: float = attr.ib(metadata={_S: "latitude"})
+    longitude: float = attr.ib(metadata={_S: "longitude"})
+    track_id: int | None = field_int("")
+    timestamp: float = attr.ib(default=time, metadata={_S: "timestamp"})
+    fuel: int | None = field_int("")
+    speed: float | None = field_float("")
+    max_speed: float | None = field_float("")
+    length: float | None = field_float("")
