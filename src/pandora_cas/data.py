@@ -255,6 +255,7 @@ class CurrentState(_BaseGetDictArgs):
     tracking_remaining: float | None = field_float("track_remains")
     voltage: float | None = field_float("voltage")
     gear: str | None = field_emp("gear")
+    battery_warm_up: bool | None = field_bool("battery_warm_up")
 
     can_belt_back_center: bool | None = field_bool("CAN_back_center_belt")
     can_belt_back_left: bool | None = field_bool("CAN_back_left_belt")

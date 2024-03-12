@@ -70,6 +70,7 @@ class CommandID(IntEnum):
     TRIGGER_TRUNK = 35
     CHECK = 255
 
+    # DTC management
     ERASE_DTC = 57856
     READ_DTC = 57857
 
@@ -111,9 +112,11 @@ class CommandID(IntEnum):
     CLIMATE_BATTERY_HEAT_TURN_ON = 58647  # Вкл. подогрев батареи
     CLIMATE_BATTERY_HEAT_TURN_OFF = 58648  # Выкл. подогрев батареи
 
+    # System energy controls
+    ENABLE_STEALTH_MODE = 50
+
     # Unknown (untested and incorrectly named) commands
     STAY_HOME_PROPION = 42
-    LOW_POWER_MODE = 50
     PS_CALL = 256
 
 
