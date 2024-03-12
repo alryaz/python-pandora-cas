@@ -11,7 +11,7 @@ setuptools.setup(
     keywords="pandora, car, alarm, system, alarmtrade",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/tomchen/example_pypi_package",
+    url="https://github.com/alryaz/python-pandora-cas",
     project_urls={
         "Documentation": "https://github.com/alryaz/python-pandora-cas",
         "Bug Reports": "https://github.com/alryaz/python-pandora-cas/issues",
