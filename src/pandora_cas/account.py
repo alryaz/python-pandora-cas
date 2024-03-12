@@ -405,19 +405,28 @@ class PandoraOnlineAccount:
                     device_object.attributes = device_attributes
 
     async def async_remote_command(
-        self, device_id: int, command_id: int | CommandID
+        self,
+        device_id: int,
+        command_id: int | CommandID,
+        params: Mapping[str, Any] = None,
     ) -> None:
         """
         Execute remote command on target device.
         :param device_id: Device ID to execute command on.
         :param command_id: Identifier of the command to execute.
+        :param params: additional parameters to send with the command.
         :raises PandoraOnlineException: Failed command execution with response.
         """
         self.logger.info(f"Sending command {command_id} to device {device_id}")
 
+        data = {"id": device_id, "command": int(command_id)}
+
+        if params:
+            data["comm_params"] = dict(params)
+
         async with self._session.post(
             self.BASE_URL + "/api/devices/command",
-            data={"id": device_id, "command": int(command_id)},
+            data=data,
             params={"access_token": self.access_token},
         ) as response:
             data = await self._handle_dict_response(response)

@@ -160,7 +160,10 @@ class PandoraOnlineDevice:
 
     # Remote command execution section
     async def async_remote_command(
-        self, command_id: int | CommandID, ensure_complete: bool = True
+        self,
+        command_id: int | CommandID,
+        ensure_complete: bool = True,
+        params: Mapping[str, Any] | None = None,
     ):
         """Proxy method to execute commands on corresponding vehicle object"""
         if self._current_state is None:
@@ -172,7 +175,7 @@ class PandoraOnlineDevice:
         if ensure_complete:
             self._control_future = asyncio.Future()
 
-        await self._account.async_remote_command(self.device_id, command_id)
+        await self._account.async_remote_command(self.device_id, command_id, params)
 
         if ensure_complete:
             self.logger.debug(
@@ -265,6 +268,9 @@ class PandoraOnlineDevice:
 
     async def async_remote_trigger_trunk(self, ensure_complete: bool = True):
         return await self.async_remote_command(CommandID.TRIGGER_TRUNK, ensure_complete)
+
+    # Climate commands
+
 
     @property
     def control_busy(self) -> bool:

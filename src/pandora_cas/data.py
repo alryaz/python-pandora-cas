@@ -1,5 +1,5 @@
 __all__ = (
-    "BalanceState",
+    "Balance",
     "FuelTank",
     "CurrentState",
     "TrackingEvent",
@@ -17,10 +17,11 @@ from typing import (
     SupportsFloat,
     SupportsInt,
     MutableMapping,
-    Collection,
     Final,
     Callable,
     Type,
+    Sequence,
+    SupportsRound,
 )
 
 import attr
@@ -62,6 +63,15 @@ def field_opt(
 
 def value_or_none(x: _T) -> _T | None:
     return x or None
+
+
+def field_list(
+    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
+):
+    kwargs.setdefault("default", ())
+    if converter is not None:
+        kwargs["converter"] = lambda x: tuple(map(converter, x))
+    return field(field_name, **kwargs)
 
 
 def field_emp(
@@ -150,41 +160,31 @@ class _BaseGetDictArgs(ABC):
     def conv(cls, x: Any):
         return x if isinstance(x, cls) else cls.from_dict(x)
 
-    @classmethod
-    def conv_list(cls, x: Any):
-        return tuple(map(cls.conv, x))
+
+@attr.s(kw_only=True, frozen=True, slots=True)
+class _FloatValue(_BaseGetDictArgs, SupportsInt, SupportsFloat, SupportsRound):
+    value: float | None = field_float("value")
+
+    def __float__(self) -> float:
+        return self.value
+
+    def __int__(self) -> int:
+        return int(self.value)
+
+    def __round__(self, __ndigits: int | None = None):
+        return round(self.value, __ndigits)
 
 
 @attr.s(frozen=True, slots=True)
-class BalanceState(_BaseGetDictArgs):
-    value: float = field_float("value", default=0.0)
+class Balance(_FloatValue):
     currency: str | None = field_emp("cur")
-
-    def __float__(self) -> float:
-        return self.value
-
-    def __int__(self) -> int:
-        return int(self.value)
-
-    def __round__(self, n=None):
-        return round(self.value, n)
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
-class FuelTank:
-    id: int = attr.ib(metadata={_S: "id"})
-    value: float = attr.ib(metadata={_S: "value"})
+class FuelTank(_FloatValue):
+    id: int = field("id", int, default=0)
     ras: float | None = field_float("")
     ras_t: float | None = field_float("")
-
-    def __float__(self) -> float:
-        return self.value
-
-    def __int__(self) -> int:
-        return int(self.value)
-
-    def __round__(self, n=None):
-        return round(self.value, n)
 
 
 def _degrees_to_direction(degrees: float):
@@ -217,7 +217,7 @@ def from_dict_wrap(cls: Type[_BaseGetDictArgs]):
 class SimCard(_BaseGetDictArgs):
     phone: str = field("phoneNumber")
     is_active: bool = field("isActive", bool)
-    balance: BalanceState | None = field_emp("balance", from_dict_wrap(BalanceState))
+    balance: Balance | None = field_emp("balance", from_dict_wrap(Balance))
 
 
 def lock_lat_lng_conv(x: Any):
@@ -229,8 +229,8 @@ class CurrentState(_BaseGetDictArgs):
     identifier: int = field(("dev_id", "id"), int)
 
     active_sim: int | None = field_int("active_sim")
-    balance: BalanceState | None = field_emp("balance", BalanceState.conv)
-    balance_other: BalanceState | None = field_emp("balance1", BalanceState.conv)
+    balance: Balance | None = field_emp("balance", Balance.conv)
+    balance_other: Balance | None = field_emp("balance1", Balance.conv)
     bit_state: BitStatus | None = field_opt("bit_state_1", lambda x: BitStatus(int(x)))
     can_mileage: float | None = field_float("mileage_CAN")
     engine_rpm: int | None = field_int("engine_rpm")
@@ -282,11 +282,12 @@ class CurrentState(_BaseGetDictArgs):
     can_climate_defroster: bool | None = field_bool("CAN_climate_defroster")
     can_climate_evb_heat: bool | None = field_bool("CAN_climate_evb_heat")
     can_climate_glass_heat: bool | None = field_bool("CAN_climate_glass_heat")
-    can_climate_seat_heat_lvl: int | None = field_int("CAN_climate_seat_heat_lvl")
-    can_climate_seat_vent_lvl: int | None = field_int("CAN_climate_seat_vent_lvl")
+    can_climate_seat_heat_level: int | None = field_int("CAN_climate_seat_heat_lvl")
+    can_climate_seat_vent_level: int | None = field_int("CAN_climate_seat_vent_lvl")
     can_climate_steering_heat: bool | None = field_bool("CAN_climate_steering_heat")
-    can_climate_temp: int | None = field_int("CAN_climate_temp")
+    can_climate_temperature: int | None = field_int("CAN_climate_temp")
 
+    heater_errors: Sequence[int] = field_list("heater_errors", int)
     heater_flame: bool | None = field_bool("heater_flame")
     heater_power: bool | None = field_bool("heater_power")
     heater_temperature: float | None = field_float("heater_temperature")
@@ -318,8 +319,8 @@ class CurrentState(_BaseGetDictArgs):
     # land: int | None = field_int("land")
     bunker: int | None = field_int("bunker")
     ex_status: int | None = field_int("ex_status")
-    fuel_tanks: Collection[FuelTank] = attr.ib(default=())
-    sims: Collection[SimCard] = field_emp("sims", SimCard.conv_list, default=())
+    fuel_tanks: Sequence[FuelTank] = attr.ib(default=())
+    sims: Sequence[SimCard] = field_list("sims", SimCard.conv)
 
     state_timestamp: int | None = field_int("state")
     state_timestamp_utc: int | None = field_int("state_utc")

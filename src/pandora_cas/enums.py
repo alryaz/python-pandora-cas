@@ -2,6 +2,7 @@ __all__ = (
     "PandoraDeviceTypes",
     "WSMessageType",
     "CommandID",
+    "CommandParams",
     "EventType",
     "AlertType",
     "BitStatus",
@@ -88,6 +89,27 @@ class CommandID(IntEnum):
     NAV12_RESET_ERRORS = 57408
     NAV12_ENABLE_STATUS_OUTPUT = 57372
     NAV12_DISABLE_STATUS_OUTPUT = 57371
+
+    # Climate-related commands
+    CLIMATE_SET_TEMPERATURE = 58624  # Установить температуру
+    CLIMATE_SEAT_HEAT_TURN_ON = 58625  # Вкл. подогрев сидений
+    CLIMATE_SEAT_HEAT_TURN_OFF = 58626  # Выкл. подогрев сидений
+    CLIMATE_SEAT_VENT_TURN_ON = 58627  # Вкл. вентиляцию сидений
+    CLIMATE_SEAT_VENT_TURN_OFF = 58628  # Выкл. подогрев сидений
+    CLIMATE_WINDOW_HEAT_TURN_ON = 58629  # Вкл. подогрев окон и зеркал
+    CLIMATE_WINDOW_HEAT_TURN_OFF = 58630  # Выкл. подогрев окон и зеркал
+    CLIMATE_STEERING_HEAT_TURN_ON = 58631  # Вкл. подогрев руля
+    CLIMATE_STEERING_HEAT_TURN_OFF = 58632  # Выкл. подогрев руля
+    CLIMATE_AC_TURN_ON = 58633  # Вкл. кондиционер
+    CLIMATE_AC_TURN_OFF = 58634  # Выкл. кондиционер
+    CLIMATE_SYS_TURN_ON = 58635  # Вкл. климатическую систему
+    CLIMATE_SYS_TURN_OFF = 58636  # Выкл. климатическую систему
+    CLIMATE_DEFROSTER_TURN_ON = 58637  # Вкл. Defroster
+    CLIMATE_DEFROSTER_TURN_OFF = 58638  # Выкл. Defroster
+    CLIMATE_MODE_COMFORT = 58639  # Режим комфорт
+    CLIMATE_MODE_VENT = 58640  # Режим проветривания салона
+    CLIMATE_BATTERY_HEAT_TURN_ON = 58647  # Вкл. подогрев батареи
+    CLIMATE_BATTERY_HEAT_TURN_OFF = 58648  # Выкл. подогрев батареи
 
     # Unknown (untested and incorrectly named) commands
     STAY_HOME_PROPION = 42
@@ -280,3 +302,7 @@ class PrimaryEventID(IntEnum):
     @classmethod
     def _missing_(cls, value: object) -> Any:
         return cls.UNKNOWN
+
+
+class CommandParams(StrEnum):
+    CLIMATE_TEMP = "climate_temp"
