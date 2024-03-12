@@ -904,11 +904,20 @@ class PandoraOnlineAccount:
             data["reply"],
         )
 
+        try:
+            result = int(result)
+        except (TypeError, ValueError):
+            self.logger.warning(
+                f"Could not decode result {result} for command "
+                f"{command_id}, assuming an error"
+            )
+            result = 1
+
         if device.control_busy:
             if result:
-                device.release_control_lock()
+                device.release_control_lock(f"(CID:{command_id}) reply={reply}")
             else:
-                device.release_control_lock(f"(CID:{command_id}) {reply}")
+                device.release_control_lock()
 
         return command_id, result, reply
 
