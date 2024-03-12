@@ -25,7 +25,7 @@ from typing import (
 
 import attr
 
-from .enums import PrimaryEventID, BitStatus
+from pandora_cas.enums import PrimaryEventID, BitStatus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def field_opt(
 ):
     kwargs.setdefault("default", None)
     if converter is not None:
-        kwargs["converter"] = lambda x: None if x is None else converter(x)
+        kwargs["converter"] = lambda x: kwargs["default"] if x is None else converter(x)
     return field(field_name, **kwargs)
 
 
@@ -110,6 +110,7 @@ class _BaseGetDictArgs(ABC):
     @classmethod
     def get_dict_args(cls, data: Mapping[str, Any], **kwargs) -> _TKwargs:
         all_keys = set(data.keys())
+        name = cls.__class__.__name__
         # noinspection PyTypeChecker
         for attrib in attr.fields(cls):
             try:
@@ -121,15 +122,18 @@ class _BaseGetDictArgs(ABC):
                 continue
             for key in keys:
                 if key in data:
+                    _LOGGER.debug(f"[{name}] {attrib.name} = {data[key]} (from {key})")
                     kwargs[attrib.name] = data[key]
                     break
+            else:
+                _LOGGER.debug(f"[{name}] {attrib.name} = ? (not found)")
 
-        name = cls.__class__.__name__
         if all_keys:
             _LOGGER.info(
                 f"[{name}] New attributes detected! Please, report this to the developer ASAP."
             )
-            for key in all_keys:
+            # noinspection PyTypeChecker
+            for key in sorted(all_keys, key=str.lower):
                 _LOGGER.info(f"[{name}]  {key} ({type(data[key])}) = {repr(data[key])}")
         else:
             _LOGGER.debug(f"[{name}] All available attributes processed")
@@ -253,21 +257,40 @@ class CurrentState(_BaseGetDictArgs):
     tag_number: int | None = field_int("metka")
     tracking_remaining: float | None = field_float("track_remains")
     voltage: float | None = field_float("voltage")
+    gear: str | None = field_emp("gear")
 
     can_belt_back_center: bool | None = field_bool("CAN_back_center_belt")
     can_belt_back_left: bool | None = field_bool("CAN_back_left_belt")
     can_belt_back_right: bool | None = field_bool("CAN_back_right_belt")
     can_belt_driver: bool | None = field_bool("CAN_driver_belt")
     can_belt_passenger: bool | None = field_bool("CAN_passenger_belt")
+
     can_glass_back_left: bool | None = field_bool("CAN_back_left_glass")
     can_glass_back_right: bool | None = field_bool("CAN_back_right_glass")
     can_glass_driver: bool | None = field_bool("CAN_driver_glass")
     can_glass_passenger: bool | None = field_bool("CAN_passenger_glass")
+
     can_tpms_back_left: float | None = field_float("CAN_TMPS_forvard_left")
     can_tpms_back_right: float | None = field_float("CAN_TMPS_forvard_right")
     can_tpms_front_left: float | None = field_float("CAN_TMPS_back_left")
     can_tpms_front_right: float | None = field_float("CAN_TMPS_back_right")
     can_tpms_reserve: float | None = field_float("CAN_TMPS_reserve")
+
+    climate_firmware: int | None = field_int("fw_climate")
+    can_climate: bool | None = field_bool("CAN_climate")
+    can_climate_ac: bool | None = field_bool("CAN_climate_ac")
+    can_climate_defroster: bool | None = field_bool("CAN_climate_defroster")
+    can_climate_evb_heat: bool | None = field_bool("CAN_climate_evb_heat")
+    can_climate_glass_heat: bool | None = field_bool("CAN_climate_glass_heat")
+    can_climate_seat_heat_lvl: int | None = field_int("CAN_climate_seat_heat_lvl")
+    can_climate_seat_vent_lvl: int | None = field_int("CAN_climate_seat_vent_lvl")
+    can_climate_steering_heat: bool | None = field_bool("CAN_climate_steering_heat")
+    can_climate_temp: int | None = field_int("CAN_climate_temp")
+
+    heater_flame: bool | None = field_bool("heater_flame")
+    heater_power: bool | None = field_bool("heater_power")
+    heater_temperature: float | None = field_float("heater_temperature")
+    heater_voltage: float | None = field_float("heater_voltage")
 
     can_average_speed: float | None = field_float("CAN_average_speed")
     can_consumption: float | None = field_float("CAN_consumption")

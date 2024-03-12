@@ -7,12 +7,12 @@ from typing import Mapping, Any, Final, TYPE_CHECKING
 
 import attr
 
-from .data import CurrentState, TrackingPoint, TrackingEvent
-from .enums import CommandID, Features
-from .errors import PandoraOnlineException
+from pandora_cas.data import CurrentState, TrackingPoint, TrackingEvent
+from pandora_cas.enums import CommandID, Features
+from pandora_cas.errors import PandoraOnlineException
 
 if TYPE_CHECKING:
-    from .account import PandoraOnlineAccount
+    from pandora_cas.account import PandoraOnlineAccount
 
 _LOGGER: Final = logging.getLogger(__name__)
 

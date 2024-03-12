@@ -21,10 +21,10 @@ import aiohttp
 import attr
 from async_timeout import timeout
 
-from .data import FuelTank, CurrentState, TrackingEvent, TrackingPoint
-from .device import PandoraOnlineDevice
-from .enums import CommandID, WSMessageType
-from .errors import (
+from pandora_cas.data import FuelTank, CurrentState, TrackingEvent, TrackingPoint
+from pandora_cas.device import PandoraOnlineDevice
+from pandora_cas.enums import CommandID, WSMessageType
+from pandora_cas.errors import (
     MalformedResponseError,
     AuthenticationError,
     PandoraOnlineException,
