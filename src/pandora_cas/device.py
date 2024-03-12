@@ -172,8 +172,9 @@ class PandoraOnlineDevice:
         if self.control_busy:
             raise PandoraOnlineException("device is busy executing command")
 
+        control_future = None
         if ensure_complete:
-            self._control_future = asyncio.Future()
+            self._control_future = control_future = asyncio.Future()
 
         await self._account.async_remote_command(self.device_id, command_id, params)
 
@@ -182,8 +183,8 @@ class PandoraOnlineDevice:
                 f"Ensuring command {command_id} completion "
                 f"(timeout: {self.control_timeout})"
             )
-            await asyncio.wait_for(self._control_future, self.control_timeout)
-            self._control_future.result()
+            await asyncio.wait_for(control_future, self.control_timeout)
+            control_future.result()
 
         self.logger.debug(f"Command {command_id} executed successfully")
 
