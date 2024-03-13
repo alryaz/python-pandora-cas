@@ -350,7 +350,7 @@ class CurrentState(_BaseGetDictArgs):
 
     state_timestamp: int | None = field_int("state")
     state_timestamp_utc: int | None = field_int("state_utc")
-    online_timestamp: int | None = field_int("online")
+    online_timestamp: int | None = field_int(("online", "dtime"))
     online_timestamp_utc: int | None = field_int("online_utc")
     settings_timestamp_utc: int | None = field_int("setting_utc")
     command_timestamp_utc: int | None = field_int("command_utc")
