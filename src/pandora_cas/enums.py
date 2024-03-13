@@ -252,8 +252,8 @@ class Features(Flag):
     @classmethod
     def from_dict(cls, features_dict: dict[str, Union[bool, int]]):
         result = None
-        for flag in cls.__members__:
-            if features_dict.get(flag.lower(), 0) > 0:
+        for key, flag in cls.__members__.items():
+            if features_dict.get(key.lower(), 0) > 0:
                 result = flag if result is None else result | flag
         return result
 
