@@ -209,51 +209,52 @@ class BitStatus(IntFlag):
 class Features(Flag):
     ACTIVE_SECURITY = auto()
     AUTO_CHECK = auto()
-    AUTO_START = auto()
-    BEEPER = auto()
+    AUTOSTART = auto()
+    BEEP = auto()
+    BENISH = auto()
     BLUETOOTH = auto()
-    EXT_CHANNEL = auto()
-    NETWORK = auto()
+    CAMPER = auto()
+    CHANNEL = auto()
+    CONNECTION = auto()
     CUSTOM_PHONES = auto()
     EVENTS = auto()
-    EXTENDED_PROPERTIES = auto()
-    BLOCK_HEATER = auto()
+    EXTEND_PROPS = auto()
+    HEATER = auto()
+    HEATER_FROM_40 = auto()
     KEEP_ALIVE = auto()
-    LIGHT_TOGGLE = auto()
-    NOTIFICATIONS = auto()
+    LIGHT = auto()
+    MOTO = auto()
+    NAV = auto()
+    NAV11 = auto()
+    NAV12 = auto()
+    NAV12EGTS = auto()
+    NO_AUTORUN = auto()
+    NO_FUEL = auto()
+    NO_HEAT = auto()
+    NO_NOTIFICATION = auto()
+    NO_SENSORS = auto()
+    NO_SETTINGS = auto()
+    NO_TRACK = auto()
+    NOAPPSETT = auto()
+    NOTIFICATION = auto()
+    OBD_CODES = auto()
+    SAVE_MODE_TIME = auto()
     SCHEDULE = auto()
     SENSORS = auto()
+    STEALTH_MODE = auto()
+    SUBSCRIPTION = auto()
+    TRACK = auto()
     TRACKING = auto()
-    TRUNK_TRIGGER = auto()
-    NAV = auto()
+    TRUNK = auto()
+    VALUE_100 = auto()
+    WATCH_LIKE_TAG = auto()
 
     @classmethod
     def from_dict(cls, features_dict: dict[str, Union[bool, int]]):
         result = None
-        for key, flag in {
-            "active_security": cls.ACTIVE_SECURITY,
-            "auto_check": cls.AUTO_CHECK,
-            "autostart": cls.AUTO_START,
-            "beep": cls.BEEPER,
-            "bluetooth": cls.BLUETOOTH,
-            "channel": cls.EXT_CHANNEL,
-            "connection": cls.NETWORK,
-            "custom_phones": cls.CUSTOM_PHONES,
-            "events": cls.EVENTS,
-            "extend_props": cls.EXTENDED_PROPERTIES,
-            "heater": cls.BLOCK_HEATER,
-            "keep_alive": cls.KEEP_ALIVE,
-            "light": cls.LIGHT_TOGGLE,
-            "notification": cls.NOTIFICATIONS,
-            "schedule": cls.SCHEDULE,
-            "sensors": cls.SENSORS,
-            "tracking": cls.TRACKING,
-            "trunk": cls.TRUNK_TRIGGER,
-            "nav": cls.NAV,
-        }.items():
-            if key in features_dict:
+        for flag in cls.__members__:
+            if features_dict.get(flag.lower(), 0) > 0:
                 result = flag if result is None else result | flag
-
         return result
 
 
