@@ -91,6 +91,12 @@ class CommandID(IntEnum):
     NAV12_ENABLE_STATUS_OUTPUT = 57372
     NAV12_DISABLE_STATUS_OUTPUT = 57371
 
+    # Benish OBD commands
+    BENISH_DISABLE_SERVICE_MODE = 57632  # Выключение режима ТО2
+    BENISH_ENABLE_SERVICE_MODE = 57633  # Включение режима ТО2
+    BENISH_DISABLE_ENGINE_BLOCKING = 57346  # Разблокировка двигателя
+    BENISH_ENABLE_ENGINE_BLOCKING = 57347  # Блокировка двигателя
+
     # Climate-related commands
     CLIMATE_SET_TEMPERATURE = 58624  # Установить температуру
     CLIMATE_SEAT_HEAT_TURN_ON = 58625  # Вкл. подогрев сидений
