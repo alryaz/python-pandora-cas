@@ -36,81 +36,6 @@ _S: Final = "source_value_identifier"
 _TFieldName = str | tuple[str, ...]
 
 
-# noinspection PyTypeHints
-def field(
-    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
-):
-    if isinstance(field_name, str):
-        field_name = (field_name,)
-    return attr.field(
-        metadata={_S: field_name},
-        converter=converter,
-        **kwargs,
-    )
-
-
-# noinspection PyTypeHints
-def field_opt(
-    field_name: _TFieldName,
-    converter: Callable[[Any], Any] | None = attr.NOTHING,
-    **kwargs,
-):
-    kwargs.setdefault("default", None)
-    if converter is not None:
-        kwargs["converter"] = lambda x: kwargs["default"] if x is None else converter(x)
-    return field(field_name, **kwargs)
-
-
-def field_list(
-    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
-):
-    kwargs.setdefault("default", ())
-    if converter is not None:
-        kwargs["converter"] = lambda x: tuple(map(converter, x))
-    return field(field_name, **kwargs)
-
-
-def field_emp(
-    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
-):
-    kwargs.setdefault("default", None)
-    if converter is not None:
-        kwargs["converter"] = lambda x: converter(x) if x else None
-    return field(field_name, **kwargs)
-
-
-def bool_or_none(x: Any) -> bool | None:
-    return None if x is None else bool(x)
-
-
-def field_bool(field_name: _TFieldName, **kwargs):
-    return field_opt(field_name, bool_or_none, **kwargs)
-
-
-def int_or_none(x: SupportsInt | None) -> int | None:
-    try:
-        return None if x is None else int(x)
-    except (TypeError, ValueError):
-        _LOGGER.warning(f"Could not convert value '{x}' to int, returning None")
-        return None
-
-
-def field_int(field_name: _TFieldName, **kwargs):
-    return field_opt(field_name, int_or_none, **kwargs)
-
-
-def float_or_none(x: SupportsFloat | None) -> float | None:
-    try:
-        return None if x is None else float(x)
-    except (TypeError, ValueError):
-        _LOGGER.warning(f"Could not convert value '{x}' to float, returning None")
-        return None
-
-
-def field_float(field_name: _TFieldName, **kwargs):
-    return field_opt(field_name, float_or_none, **kwargs)
-
-
 @attr.s(kw_only=True, frozen=True, slots=True)
 class _BaseGetDictArgs(ABC):
     @classmethod
@@ -152,6 +77,94 @@ class _BaseGetDictArgs(ABC):
     @classmethod
     def conv(cls, x: Any):
         return x if isinstance(x, cls) else cls.from_dict(x)
+
+
+# noinspection PyTypeHints
+def field(
+    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
+):
+    if isinstance(field_name, str):
+        field_name = (field_name,)
+    return attr.field(
+        metadata={_S: field_name},
+        converter=converter,
+        **kwargs,
+    )
+
+
+# noinspection PyTypeHints
+def field_opt(
+    field_name: _TFieldName,
+    converter: type[_BaseGetDictArgs] | Callable[[Any], Any] | None = None,
+    **kwargs,
+):
+    kwargs.setdefault("default", None)
+    if isinstance(converter, type) and issubclass(converter, _BaseGetDictArgs):
+        # kwargs.setdefault("type", Sequence[converter])
+        converter = converter.from_dict
+    if converter is not None:
+        kwargs["converter"] = lambda x: kwargs["default"] if x is None else converter(x)
+    return field(field_name, **kwargs)
+
+
+def field_list(
+    field_name: _TFieldName,
+    converter: type[_BaseGetDictArgs] | Callable[[Any], Any] | None = None,
+    **kwargs,
+):
+    kwargs.setdefault("default", ())
+    if isinstance(converter, type) and issubclass(converter, _BaseGetDictArgs):
+        # kwargs.setdefault("type", Sequence[converter])
+        converter = converter.conv
+    if converter is not None:
+        kwargs["converter"] = lambda x: tuple(map(converter, x))
+    return field(field_name, **kwargs)
+
+
+def field_emp(
+    field_name: _TFieldName,
+    converter: type[_BaseGetDictArgs] | Callable[[Any], Any] | None = None,
+    **kwargs,
+):
+    kwargs.setdefault("default", None)
+    if isinstance(converter, type) and issubclass(converter, _BaseGetDictArgs):
+        # kwargs.setdefault("type", Sequence[converter])
+        converter = _BaseGetDictArgs.from_dict
+    if converter is not None:
+        kwargs["converter"] = lambda x: converter(x) if x else None
+    return field(field_name, **kwargs)
+
+
+def bool_or_none(x: Any) -> bool | None:
+    return None if x is None else bool(x)
+
+
+def field_bool(field_name: _TFieldName, **kwargs):
+    return field_opt(field_name, bool_or_none, **kwargs)
+
+
+def int_or_none(x: SupportsInt | None) -> int | None:
+    try:
+        return None if x is None else int(x)
+    except (TypeError, ValueError):
+        _LOGGER.warning(f"Could not convert value '{x}' to int, returning None")
+        return None
+
+
+def field_int(field_name: _TFieldName, **kwargs):
+    return field_opt(field_name, int_or_none, **kwargs)
+
+
+def float_or_none(x: SupportsFloat | None) -> float | None:
+    try:
+        return None if x is None else float(x)
+    except (TypeError, ValueError):
+        _LOGGER.warning(f"Could not convert value '{x}' to float, returning None")
+        return None
+
+
+def field_float(field_name: _TFieldName, **kwargs):
+    return field_opt(field_name, float_or_none, **kwargs)
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
@@ -313,8 +326,8 @@ class CurrentState(_BaseGetDictArgs):
     # land: int | None = field_int("land")
     bunker: int | None = field_int("bunker")
     ex_status: int | None = field_int("ex_status")
-    fuel_tanks: Sequence[FuelTank] = attr.ib(default=())
-    sims: Sequence[SimCard] = field_list("sims", SimCard.conv)
+    fuel_tanks: Sequence[FuelTank] = field_list("tanks", FuelTank)
+    sims: Sequence[SimCard] = field_list("sims", SimCard)
 
     state_timestamp: int | None = field_int("state")
     state_timestamp_utc: int | None = field_int("state_utc")
