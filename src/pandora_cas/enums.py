@@ -33,61 +33,61 @@ class CommandID(IntEnum):
     """Enumeration of possible services to be executed."""
 
     # Locking mechanism
-    LOCK = 1
-    UNLOCK = 2
+    LOCK = 1  # Постановка
+    UNLOCK = 2  # Снятие
 
     # Engine toggles
-    START_ENGINE = 4
-    STOP_ENGINE = 8
+    START_ENGINE = 4  # Запуск двигателя
+    STOP_ENGINE = 8  # Останов двигателя
 
     # Tracking toggle
-    ENABLE_TRACKING = 16
-    DISABLE_TRACKING = 32
+    ENABLE_TRACKING = 16  # Включение трекинга
+    DISABLE_TRACKING = 32  # Выключение трекинга
 
     # Active security toggle
-    ENABLE_ACTIVE_SECURITY = 17
-    DISABLE_ACTIVE_SECURITY = 18
+    ENABLE_ACTIVE_SECURITY = 17  # Включение активной охраны
+    DISABLE_ACTIVE_SECURITY = 18  # Отключение активной охраны
 
     # Block heater toggle
-    TURN_ON_BLOCK_HEATER = 21
-    TURN_OFF_BLOCK_HEATER = 22
+    TURN_ON_BLOCK_HEATER = 21  # Включение подогревателя
+    TURN_OFF_BLOCK_HEATER = 22  # Выключение подогревателя
 
     # External (timer) channel toggle
-    TURN_ON_EXT_CHANNEL = 33
-    TURN_OFF_EXT_CHANNEL = 34
+    TURN_ON_EXT_CHANNEL = 33  # Включение таймерного канала
+    TURN_OFF_EXT_CHANNEL = 34  # Выключение таймерного канала
 
     # Service mode toggle
     ENABLE_SERVICE_MODE = 40  # 36?
     DISABLE_SERVICE_MODE = 41  # 37?
 
     # Status output toggle
-    ENABLE_STATUS_OUTPUT = 48
-    DISABLE_STATUS_OUTPUT = 49
+    ENABLE_STATUS_OUTPUT = 48  # Активировать блокировку / Активировать выход
+    DISABLE_STATUS_OUTPUT = 49  # Деактивировать блокировку / Деактивировать выход
 
     # Various commands
-    TRIGGER_HORN = 23
-    TRIGGER_LIGHT = 24
-    TRIGGER_TRUNK = 35
-    CHECK = 255
+    TRIGGER_HORN = 23  # Подача звукового сигнала
+    TRIGGER_LIGHT = 24  # Включение подсветки
+    TRIGGER_TRUNK = 35  # Открытие багажника
+    CHECK = 255  # Команда CHECK
 
     # DTC management
-    ERASE_DTC = 57856
-    READ_DTC = 57857
+    ERASE_DTC = 57856  # Стирание ошибок
+    READ_DTC = 57857  # Запрос на чтение ошибок
 
     # Additional commands
-    ADDITIONAL_COMMAND_1 = 100
-    ADDITIONAL_COMMAND_2 = 128
+    ADDITIONAL_COMMAND_1 = 100  # Доп. команда 1
+    ADDITIONAL_COMMAND_2 = 128  # Доп. команда 2
 
     # Connection toggle
-    ENABLE_CONNECTION = 240
-    DISABLE_CONNECTION = 15
+    ENABLE_CONNECTION = 240  # Продление связи
+    DISABLE_CONNECTION = 15  # Завершение связи
 
     # NAV12-specific commands
     NAV12_DISABLE_SERVICE_MODE = 57374
     NAV12_ENABLE_SERVICE_MODE = 57375
     NAV12_TURN_OFF_BLOCK_HEATER = 57353
     NAV12_TURN_ON_BLOCK_HEATER = 57354
-    NAV12_RESET_ERRORS = 57408
+    NAV12_RESET_ERRORS = 57408  # Сброс ошибок подогревателя
     NAV12_ENABLE_STATUS_OUTPUT = 57372
     NAV12_DISABLE_STATUS_OUTPUT = 57371
 
