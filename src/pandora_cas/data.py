@@ -2,6 +2,7 @@ __all__ = (
     "Balance",
     "FuelTank",
     "CurrentState",
+    "LiquidSensor",
     "TrackingEvent",
     "TrackingPoint",
 )
@@ -226,6 +227,23 @@ class SimCard(_BaseGetDictArgs):
     balance: Balance | None = field_emp("balance", from_dict_wrap(Balance))
 
 
+@attr.s(kw_only=True, frozen=True, slots=True)
+class LiquidSensor(_BaseGetDictArgs):
+    identifier: int = field("num", int)
+    level: float | None = field_float("level")
+    temperature: float | None = field_float("temp")
+    unit: int | None = field_int("unit")
+    voltage: float | None = field_float("voltage")
+
+    @property
+    def is_percentage(self) -> bool:
+        return self.unit == 1
+
+    @property
+    def is_liters(self) -> bool:
+        return self.unit == 2
+
+
 def lock_lat_lng_conv(x: Any):
     return float(x) / 1000000
 
@@ -324,6 +342,7 @@ class CurrentState(_BaseGetDictArgs):
     # tconsum: int | None = field_int("tconsum")
     # loadaxis: Any = attr.ib(default=None, metadata={_S: "loadaxis"})
     # land: int | None = field_int("land")
+    liquid_sensors: Sequence[LiquidSensor] = field_list("liquid_sensor", LiquidSensor)
     bunker: int | None = field_int("bunker")
     ex_status: int | None = field_int("ex_status")
     fuel_tanks: Sequence[FuelTank] = field_list("tanks", FuelTank)
