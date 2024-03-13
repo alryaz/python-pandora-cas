@@ -61,10 +61,6 @@ def field_opt(
     return field(field_name, **kwargs)
 
 
-def value_or_none(x: _T) -> _T | None:
-    return x or None
-
-
 def field_list(
     field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
 ):
