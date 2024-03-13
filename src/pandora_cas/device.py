@@ -235,13 +235,13 @@ class PandoraOnlineDevice:
             CommandID.DISABLE_ACTIVE_SECURITY, ensure_complete=ensure_complete
         )
 
-    # Coolant heater toggle
-    async def async_remote_turn_on_coolant_heater(self, ensure_complete: bool = True):
+    # Block heater toggle
+    async def async_remote_turn_on_block_heater(self, ensure_complete: bool = True):
         return await self.async_remote_command(
             CommandID.TURN_ON_BLOCK_HEATER, ensure_complete=ensure_complete
         )
 
-    async def async_remote_turn_off_coolant_heater(self, ensure_complete: bool = True):
+    async def async_remote_turn_off_block_heater(self, ensure_complete: bool = True):
         return await self.async_remote_command(
             CommandID.TURN_OFF_BLOCK_HEATER, ensure_complete=ensure_complete
         )

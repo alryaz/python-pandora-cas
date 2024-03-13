@@ -48,7 +48,7 @@ class CommandID(IntEnum):
     ENABLE_ACTIVE_SECURITY = 17
     DISABLE_ACTIVE_SECURITY = 18
 
-    # Coolant heater toggle
+    # Block heater toggle
     TURN_ON_BLOCK_HEATER = 21
     TURN_OFF_BLOCK_HEATER = 22
 
