@@ -150,9 +150,7 @@ class PandoraOnlineDevice:
     def last_event(self, value: TrackingEvent | None) -> None:
         self._last_event = value
 
-    def update_current_state(
-        self, **state_args
-    ) -> tuple[CurrentState, dict[str, Any]]:
+    def update_current_state(self, **state_args) -> tuple[CurrentState, dict[str, Any]]:
         # Extract UTC offset
         prefixes = ("online", "state")
         utc_offset = self.utc_offset
