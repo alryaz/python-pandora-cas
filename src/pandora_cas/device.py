@@ -2,6 +2,7 @@ __all__ = ("PandoraOnlineDevice", "DEFAULT_CONTROL_TIMEOUT")
 
 import asyncio
 import logging
+from datetime import datetime
 from types import MappingProxyType
 from typing import Mapping, Any, Final, TYPE_CHECKING
 
@@ -15,6 +16,13 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 DEFAULT_CONTROL_TIMEOUT: Final = 30.0
+
+
+def _max_none(*args):
+    try:
+        return max(a for a in args if a is not None)
+    except TypeError:
+        return None
 
 
 class PandoraOnlineDevice:
@@ -31,6 +39,7 @@ class PandoraOnlineDevice:
         current_state: CurrentState | None = None,
         control_timeout: float = DEFAULT_CONTROL_TIMEOUT,
         utc_offset: int | None = None,
+        system_info: Mapping[str, Any] | None = None,
         *,
         logger: logging.Logger | logging.LoggerAdapter = _LOGGER,
     ) -> None:
@@ -42,6 +51,7 @@ class PandoraOnlineDevice:
         self._control_future: asyncio.Future | None = None
         self._features = None
         self._attributes = attributes
+        self._system_info = system_info
         self._current_state = current_state
         self._last_point: TrackingPoint | None = None
         self._last_event: TrackingEvent | None = None
@@ -198,6 +208,10 @@ class PandoraOnlineDevice:
         return await self.account.async_fetch_events(
             timestamp_from, timestamp_to, limit
         )
+
+    async def async_update_system_info(self) -> dict[str, Any]:
+        self._system_info = await self.account.async_fetch_device_system(self.device_id)
+        return self._system_info
 
     # Remote command execution section
     async def async_remote_command(
@@ -365,6 +379,40 @@ class PandoraOnlineDevice:
 
     # Attributes-related properties
     @property
+    def system_info(self) -> Mapping[str, Any] | None:
+        if (s := self._system_info) is None:
+            return None
+        return MappingProxyType(s)
+
+    @system_info.setter
+    def system_info(self, value: Mapping[str, Any] | None):
+        self._system_info = dict(value)
+
+    @property
+    def settings_timestamp(self) -> int | None:
+        if self._system_info is None:
+            return
+        if not (ts := self._system_info["dtime"]):
+            return
+        return int(datetime.fromisoformat(ts).timestamp())
+
+    @property
+    def vin(self) -> str | None:
+        if self._system_info is None:
+            return
+        if not (vin := self._system_info["vin"]):
+            return
+        return vin
+
+    @property
+    def imei(self) -> str | None:
+        if self._system_info is None:
+            return
+        if not (imei := self._system_info["imei"]):
+            return
+        return imei
+
+    @property
     def attributes(self) -> Mapping[str, Any]:
         return MappingProxyType(self._attributes)
 
@@ -399,11 +447,17 @@ class PandoraOnlineDevice:
 
     @property
     def firmware_version(self) -> str:
-        return self._attributes["firmware"]
+        opts = [self._attributes.get("firmware")]
+        if self._system_info is not None:
+            opts.append(self._system_info.get("firmware"))
+        return _max_none(opts)
 
     @property
     def voice_version(self) -> str:
-        return self._attributes["voice_version"]
+        opts = [self._attributes.get("voice_version")]
+        if self._system_info is not None:
+            opts.append(self._system_info.get("voice"))
+        return _max_none(opts)
 
     @property
     def color(self) -> str | None:
@@ -438,8 +492,14 @@ class PandoraOnlineDevice:
 
     @property
     def phone(self) -> str | None:
-        return self._attributes.get("phone") or None
+        opts = [self._attributes.get("phone")]
+        if self._system_info is not None:
+            opts.append(self._system_info.get("phone"))
+        return _max_none(opts)
 
     @property
     def phone_other(self) -> str | None:
-        return self._attributes.get("phone1") or None
+        opts = [self._attributes.get("phone1")]
+        if self._system_info is not None:
+            opts.append(self._system_info.get("phone1"))
+        return _max_none(opts)

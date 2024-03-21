@@ -470,6 +470,18 @@ class PandoraOnlineAccount:
 
         response.raise_for_status()
 
+    async def async_fetch_device_system(self, device_id: int | str) -> dict[str, Any]:
+        """
+        Fetch system information relevant to target device.
+
+        :param device_id: Device identifier
+        """
+        async with self._session.get(
+            self.BASE_URL + "/api/devices/system",
+            params={"access_token": self.access_token, "id": device_id},
+        ) as response:
+            return await self._handle_dict_response(response)
+
     async def async_fetch_device_settings(self, device_id: int | str) -> dict[str, Any]:
         """
         Fetch settings relevant to target device.
