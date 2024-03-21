@@ -381,18 +381,15 @@ class CurrentState(_BaseGetDictArgs):
     settings_timestamp_utc: int | None = field_int("setting_utc", None)
     command_timestamp_utc: int | None = field_int("command_utc", None)
 
-    _last_updated: dict[str, int] = attr.ib(
-        converter=lambda x: dict(x),  # used as lambda to fool type checkers
-        default=attr.Factory(
-            # This will initialize object correctly, with actual timestamps if provided.
-            lambda s: {
-                a.name: getattr(s, a.metadata[_A], -1)
-                for a in attr.fields(s.__class__)
-                if a.metadata.get(_A) is not None
-            },
-            True,
-        ),
-    )
+    _last_updated: dict[str, int] = attr.ib(factory=dict, converter=lambda x: dict(x))
+
+    def __attrs_post_init__(self):
+        last_updated = {}
+        for a in attr.fields(self.__class__):
+            if (timestamp_key := a.metadata.get(_A)) is None:
+                continue
+            last_updated[a.name] = getattr(self, timestamp_key, None) or -1
+        object.__setattr__(self, "_last_updated", last_updated)
 
     @property
     def last_updated(self) -> Mapping[str, int]:
