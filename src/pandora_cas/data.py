@@ -50,11 +50,12 @@ class _BaseGetDictArgs(ABC):
             except KeyError:
                 continue
             all_keys.difference_update(keys)
-            if attrib.name in kwargs:
+            init_name = attrib.alias
+            if init_name in kwargs:
                 continue
             for key in keys:
                 if key in data:
-                    kwargs[attrib.name] = data[key]
+                    kwargs[init_name] = data[key]
                     break
 
         if all_keys:
