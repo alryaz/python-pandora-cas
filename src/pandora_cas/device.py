@@ -188,6 +188,9 @@ class PandoraOnlineDevice:
             self.logger.debug(f"No attributes to update")
             return self.state, {}
 
+        # remove last_updated attribute as quite duplicate
+        state_args.pop("last_updated", None)
+
         self.state = new_state
         return new_state, state_args
 
