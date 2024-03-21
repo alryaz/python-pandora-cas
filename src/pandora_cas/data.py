@@ -11,6 +11,7 @@ import logging
 from abc import ABC
 from collections import ChainMap
 from time import time
+from types import MappingProxyType
 from typing import (
     Mapping,
     Any,
@@ -34,11 +35,14 @@ _LOGGER: Final = logging.getLogger(__name__)
 _T = TypeVar("_T")
 _TKwargs = TypeVar("_TKwargs", bound=MutableMapping[str, Any])
 _S: Final = "source_value_identifier"
+_A: Final = "timestamp_source_attribute"
 _TFieldName = str | tuple[str, ...]
+
+DEFAULT_TIMESTAMP_SOURCE: Final = "state_timestamp_utc"
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
-class _BaseGetDictArgs(ABC):
+class _BaseGetDictArgs(attr.AttrsInstance, ABC):
     @classmethod
     def get_dict_args(cls, data: Mapping[str, Any], **kwargs) -> _TKwargs:
         all_keys = set(data.keys())
@@ -83,12 +87,15 @@ class _BaseGetDictArgs(ABC):
 
 # noinspection PyTypeHints
 def field(
-    field_name: _TFieldName, converter: Callable[[Any], Any] | None = None, **kwargs
+    field_name: _TFieldName,
+    converter: Callable[[Any], Any] | None = None,
+    timestamp_source: str | None = DEFAULT_TIMESTAMP_SOURCE,
+    **kwargs,
 ):
     if isinstance(field_name, str):
         field_name = (field_name,)
     return attr.field(
-        metadata={_S: field_name},
+        metadata={_S: field_name, _A: timestamp_source},
         converter=converter,
         **kwargs,
     )
@@ -98,6 +105,7 @@ def field(
 def field_opt(
     field_name: _TFieldName,
     converter: type[_BaseGetDictArgs] | Callable[[Any], Any] | None = None,
+    timestamp_source: str | None = DEFAULT_TIMESTAMP_SOURCE,
     **kwargs,
 ):
     kwargs.setdefault("default", None)
@@ -106,12 +114,14 @@ def field_opt(
         converter = converter.from_dict
     if converter is not None:
         kwargs["converter"] = lambda x: kwargs["default"] if x is None else converter(x)
+    kwargs["timestamp_source"] = timestamp_source
     return field(field_name, **kwargs)
 
 
 def field_list(
     field_name: _TFieldName,
     converter: type[_BaseGetDictArgs] | Callable[[Any], Any] | None = None,
+    timestamp_source: str | None = DEFAULT_TIMESTAMP_SOURCE,
     **kwargs,
 ):
     kwargs.setdefault("default", ())
@@ -120,12 +130,14 @@ def field_list(
         converter = converter.conv
     if converter is not None:
         kwargs["converter"] = lambda x: tuple(map(converter, x))
+    kwargs["timestamp_source"] = timestamp_source
     return field(field_name, **kwargs)
 
 
 def field_emp(
     field_name: _TFieldName,
     converter: type[_BaseGetDictArgs] | Callable[[Any], Any] | None = None,
+    timestamp_source: str | None = DEFAULT_TIMESTAMP_SOURCE,
     **kwargs,
 ):
     kwargs.setdefault("default", None)
@@ -134,6 +146,7 @@ def field_emp(
         converter = _BaseGetDictArgs.from_dict
     if converter is not None:
         kwargs["converter"] = lambda x: converter(x) if x else None
+    kwargs["timestamp_source"] = timestamp_source
     return field(field_name, **kwargs)
 
 
@@ -141,8 +154,12 @@ def bool_or_none(x: Any) -> bool | None:
     return None if x is None else bool(x)
 
 
-def field_bool(field_name: _TFieldName, **kwargs):
-    return field_opt(field_name, bool_or_none, **kwargs)
+def field_bool(
+    field_name: _TFieldName,
+    timestamp_source: str | None = DEFAULT_TIMESTAMP_SOURCE,
+    **kwargs,
+):
+    return field_opt(field_name, bool_or_none, timestamp_source, **kwargs)
 
 
 def int_or_none(x: SupportsInt | None) -> int | None:
@@ -153,8 +170,12 @@ def int_or_none(x: SupportsInt | None) -> int | None:
         return None
 
 
-def field_int(field_name: _TFieldName, **kwargs):
-    return field_opt(field_name, int_or_none, **kwargs)
+def field_int(
+    field_name: _TFieldName,
+    timestamp_source: str | None = DEFAULT_TIMESTAMP_SOURCE,
+    **kwargs,
+):
+    return field_opt(field_name, int_or_none, timestamp_source, **kwargs)
 
 
 def float_or_none(x: SupportsFloat | None) -> float | None:
@@ -165,8 +186,12 @@ def float_or_none(x: SupportsFloat | None) -> float | None:
         return None
 
 
-def field_float(field_name: _TFieldName, **kwargs):
-    return field_opt(field_name, float_or_none, **kwargs)
+def field_float(
+    field_name: _TFieldName,
+    timestamp_source: str | None = DEFAULT_TIMESTAMP_SOURCE,
+    **kwargs,
+):
+    return field_opt(field_name, float_or_none, timestamp_source, **kwargs)
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
@@ -349,12 +374,29 @@ class CurrentState(_BaseGetDictArgs):
     fuel_tanks: Sequence[FuelTank] = field_list("tanks", FuelTank)
     sims: Sequence[SimCard] = field_list("sims", SimCard)
 
-    state_timestamp: int | None = field_int("state")
-    state_timestamp_utc: int | None = field_int("state_utc")
-    online_timestamp: int | None = field_int("online")
-    online_timestamp_utc: int | None = field_int("online_utc")
-    settings_timestamp_utc: int | None = field_int("setting_utc")
-    command_timestamp_utc: int | None = field_int("command_utc")
+    state_timestamp: int | None = field_int("state", None)
+    state_timestamp_utc: int | None = field_int("state_utc", None)
+    online_timestamp: int | None = field_int("online", None)
+    online_timestamp_utc: int | None = field_int("online_utc", None)
+    settings_timestamp_utc: int | None = field_int("setting_utc", None)
+    command_timestamp_utc: int | None = field_int("command_utc", None)
+
+    _last_updated: dict[str, int] = attr.ib(
+        converter=lambda x: dict(x),  # used as lambda to fool type checkers
+        default=attr.Factory(
+            # This will initialize object correctly, with actual timestamps if provided.
+            lambda s: {
+                a.name: getattr(s, a.metadata[_A], -1)
+                for a in attr.fields(s.__class__)
+                if a.metadata.get(_A) is not None
+            },
+            True,
+        ),
+    )
+
+    @property
+    def last_updated(self) -> Mapping[str, int]:
+        return MappingProxyType(self._last_updated)
 
     @property
     def direction(self) -> str:
@@ -375,6 +417,56 @@ class CurrentState(_BaseGetDictArgs):
     @classmethod
     def get_ws_point_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
         return cls.get_dict_args(data, **kwargs)
+
+    def evolve_args(self, **changes) -> dict[str, Any]:
+        assert attr.has(cls := self.__class__)
+        attributes = {a.alias: a for a in attr.fields(cls)}
+        warn_updates_per_key = {}
+        skip_updates_per_key = {}
+
+        new_updates = {}
+        last_updated = self._last_updated
+        init_args = {}
+        for attribute, value in changes.items():
+            if attribute not in attributes:
+                raise ValueError(f"Unknown attribute: {attribute}")
+            timestamp_key = attributes[attribute].metadata.get(_A)
+            if timestamp_key is not None:
+                timestamp_value = changes.get(timestamp_key)
+                if timestamp_value is None:
+                    warn_updates_per_key.setdefault(timestamp_key, set()).add(attribute)
+                elif last_updated[attribute] > timestamp_value:
+                    skip_updates_per_key.setdefault(timestamp_key, set()).add(attribute)
+                    continue
+                else:
+                    new_updates[attribute] = timestamp_value
+            init_args[attribute] = value
+
+        if warn_updates_per_key:
+            for timestamp_key, attributes in warn_updates_per_key.items():
+                _LOGGER.warning(
+                    f"Updating attributes {', '.join(sorted(attributes))} "
+                    f"without timestamp provided at {timestamp_key}"
+                )
+        if skip_updates_per_key:
+            for timestamp_key, attributes in warn_updates_per_key.items():
+                _LOGGER.debug(
+                    f"Skipping attributes {', '.join(sorted(attributes))} "
+                    f"update due to timestamp {timestamp_key} deviation"
+                )
+        if init_args:
+            init_args["last_updated"] = MappingProxyType(
+                {**self._last_updated, **new_updates}
+            )
+        return init_args
+
+    def evolve(self, return_new_object_on_empty_data: bool = False, **changes):
+        evolve_args = self.evolve_args(**changes)
+        return (
+            attr.evolve(self, **evolve_args)
+            if return_new_object_on_empty_data or evolve_args
+            else self
+        )
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
