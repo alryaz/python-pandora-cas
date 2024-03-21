@@ -46,7 +46,7 @@ class _BaseGetDictArgs(attr.AttrsInstance, ABC):
     @classmethod
     def get_dict_args(cls, data: Mapping[str, Any], **kwargs) -> _TKwargs:
         all_keys = set(data.keys())
-        name = cls.__class__.__name__
+        name = cls.__name__
         # noinspection PyTypeChecker
         for attrib in attr.fields(cls):
             try:
