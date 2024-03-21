@@ -5,8 +5,6 @@ import logging
 from types import MappingProxyType
 from typing import Mapping, Any, Final, TYPE_CHECKING
 
-import attr
-
 from pandora_cas.data import CurrentState, TrackingPoint, TrackingEvent
 from pandora_cas.enums import CommandID, Features
 from pandora_cas.errors import PandoraOnlineException
@@ -130,7 +128,7 @@ class PandoraOnlineDevice:
             evolve_args["latitude"] = value.latitude
             evolve_args["longitude"] = value.longitude
 
-            self._current_state = attr.evolve(current_state, **evolve_args)
+            self._current_state = current_state.evolve(**evolve_args)
 
         self._last_point = value
 
@@ -141,6 +139,49 @@ class PandoraOnlineDevice:
     @last_event.setter
     def last_event(self, value: TrackingEvent | None) -> None:
         self._last_event = value
+
+    def update_current_state(
+        self, **state_args
+    ) -> tuple[CurrentState, dict[str, Any]]:
+        # Extract UTC offset
+        prefixes = ("online", "state")
+        utc_offset = self.utc_offset
+        for prefix in prefixes:
+            utc = (non_utc := prefix + "_timestamp") + "_utc"
+            if not (
+                (non_utc_val := state_args.get(non_utc)) is None
+                or (utc_val := state_args.get(utc)) is None
+            ):
+                utc_offset = round((non_utc_val - utc_val) / 60) * 60
+                if self.utc_offset != utc_offset:
+                    self.logger.debug(
+                        f"Calculated UTC offset for device {self.device_id}: {utc_offset} seconds"
+                    )
+                    self.utc_offset = utc_offset
+                break
+
+        # Adjust for two timestamps
+        for prefix in prefixes:
+            utc = (non_utc := prefix + "_timestamp") + "_utc"
+            if (val := state_args.get(utc)) is not None:
+                if state_args.get(non_utc) is None:
+                    state_args[non_utc] = val + utc_offset
+            elif (val := state_args.get(non_utc)) is not None:
+                state_args[utc] = val - utc_offset
+
+        # Create new state if not present
+        if self.state is None:
+            self.logger.debug(f"Initializing state object")
+            new_state = CurrentState(**state_args)
+        elif state_args := self.state.evolve_args(**state_args):
+            self.logger.debug(f"Updating state object")
+            new_state = self.state.evolve(**state_args)
+        else:
+            self.logger.debug(f"No attributes to update")
+            return self.state, {}
+
+        self.state = new_state
+        return new_state, state_args
 
     async def async_fetch_last_event(self) -> TrackingEvent | None:
         try:

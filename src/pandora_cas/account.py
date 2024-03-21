@@ -18,7 +18,6 @@ from typing import (
 )
 
 import aiohttp
-import attr
 from async_timeout import timeout
 
 from pandora_cas.data import FuelTank, CurrentState, TrackingEvent, TrackingPoint
@@ -549,75 +548,12 @@ class PandoraOnlineAccount:
 
         return tuple(fuel_tanks)
 
+    # noinspection PyMethodMayBeStatic
     def _update_device_current_state(
         self, device: "PandoraOnlineDevice", **state_args
     ) -> tuple[CurrentState, dict[str, Any]]:
-        # Extract UTC offset
-        prefixes = ("online", "state")
-        utc_offset = device.utc_offset
-        for prefix in prefixes:
-            utc = (non_utc := prefix + "_timestamp") + "_utc"
-            if not (
-                (non_utc_val := state_args.get(non_utc)) is None
-                or (utc_val := state_args.get(utc)) is None
-            ):
-                utc_offset = round((non_utc_val - utc_val) / 60) * 60
-                if device.utc_offset != utc_offset:
-                    self.logger.debug(
-                        f"Calculated UTC offset for device {device.device_id}: {utc_offset} seconds"
-                    )
-                    device.utc_offset = utc_offset
-                break
-
-        # Adjust for two timestamps
-        for prefix in prefixes:
-            utc = (non_utc := prefix + "_timestamp") + "_utc"
-            if (val := state_args.get(utc)) is not None:
-                if state_args.get(non_utc) is None:
-                    state_args[non_utc] = val + utc_offset
-            elif (val := state_args.get(non_utc)) is not None:
-                state_args[utc] = val - utc_offset
-
-        # Create new state if not present
-        if (state := device.state) is None:
-            device.state = state = CurrentState(**state_args)
-            self.logger.debug(f"Setting new state object on device {device.device_id}")
-        else:
-            bad_timestamp = None
-            for postfix in ("", "_utc"):
-                for prefix in prefixes:
-                    if getattr(state, key := (prefix + "_timestamp" + postfix)) is None:
-                        continue
-                    if state_args.get(key) is None:
-                        continue
-                    if getattr(state, key) <= state_args.get(key):
-                        continue
-                    bad_timestamp = key
-                    break
-            if bad_timestamp is None:
-                device.state = attr.evolve(state, **state_args)
-                self.logger.debug(f"Updating state object on device {device.device_id}")
-            else:
-                self.logger.warning(
-                    f"State update for device {device.device_id} is "
-                    f"older than existing data (based on '{bad_timestamp}'), "
-                    f"this state update will be ignored completely!"
-                )
-                for postfix in ("", "_utc"):
-                    for prefix in prefixes:
-                        key = f"{prefix}_timestamp{postfix}"
-                        cur, new = (
-                            getattr(state, key) or 0,
-                            state_args.get(key) or 0,
-                        )
-                        sign = "=" if cur == new else ("<" if cur < new else ">")
-                        self.logger.debug(
-                            f"Timestamp {key} for {device.device_id}: {cur} {sign} {new}"
-                        )
-                return state, {}
-
-        # noinspection PyTypeChecker
-        return state, state_args
+        """**DEPRECTATED**"""
+        return device.update_current_state(**state_args)
 
     # noinspection PyMethodMayBeStatic
     def _process_http_event(
@@ -658,7 +594,7 @@ class PandoraOnlineAccount:
                 command_timestamp_utc=data_time.get("command"),
                 settings_timestamp_utc=data_time.get("setting"),
             )
-        return self._update_device_current_state(device, **update_args)
+        return device.update_current_state(**update_args)
 
     async def async_fetch_events(
         self,
@@ -802,8 +738,7 @@ class PandoraOnlineAccount:
 
         self.logger.debug(f"Initializing state for {device.device_id} from {data}")
 
-        return self._update_device_current_state(
-            device,
+        return device.update_current_state(
             **CurrentState.get_ws_state_args(data, identifier=device.device_id),
         )
 
@@ -818,8 +753,7 @@ class PandoraOnlineAccount:
         """
         self.logger.debug(f"Updating state for {device.device_id}")
 
-        return self._update_device_current_state(
-            device,
+        return device.update_current_state(
             **CurrentState.get_ws_state_args(data, identifier=device.device_id),
         )
 
@@ -867,8 +801,7 @@ class PandoraOnlineAccount:
 
         # Update state since point is newer
         if (state := device.state) and state.state_timestamp <= timestamp:
-            state, state_args = self._update_device_current_state(
-                device,
+            state, state_args = device.update_current_state(
                 **CurrentState.get_ws_point_args(
                     data,
                     identifier=device.device_id,
