@@ -192,11 +192,11 @@ def field_float(
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
-class _FloatValue(_BaseGetDictArgs, SupportsInt, SupportsFloat, SupportsRound):
+class _FloatValue(_BaseGetDictArgs, SupportsInt, SupportsFloat, SupportsRound, ABC):
     value: float | None = field_float("value")
 
     def __float__(self) -> float:
-        return self.value
+        return float(self.value)
 
     def __int__(self) -> int:
         return int(self.value)
@@ -205,7 +205,7 @@ class _FloatValue(_BaseGetDictArgs, SupportsInt, SupportsFloat, SupportsRound):
         return round(self.value, __ndigits)
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(kw_only=True, frozen=True, slots=True)
 class Balance(_FloatValue):
     currency: str | None = field_emp("cur")
 
