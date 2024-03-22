@@ -21,7 +21,6 @@ from typing import (
     MutableMapping,
     Final,
     Callable,
-    Type,
     Sequence,
     SupportsRound,
 )
@@ -109,7 +108,7 @@ def field_opt(
     kwargs.setdefault("default", None)
     if isinstance(converter, type) and issubclass(converter, _BaseGetDictArgs):
         # kwargs.setdefault("type", Sequence[converter])
-        converter = converter.from_dict
+        converter = converter.conv
     if converter is not None:
         kwargs["converter"] = lambda x: kwargs["default"] if x is None else converter(x)
     kwargs["timestamp_source"] = timestamp_source
@@ -141,7 +140,7 @@ def field_emp(
     kwargs.setdefault("default", None)
     if isinstance(converter, type) and issubclass(converter, _BaseGetDictArgs):
         # kwargs.setdefault("type", Sequence[converter])
-        converter = _BaseGetDictArgs.from_dict
+        converter = converter.conv
     if converter is not None:
         kwargs["converter"] = lambda x: converter(x) if x else None
     kwargs["timestamp_source"] = timestamp_source
@@ -240,15 +239,11 @@ def _degrees_to_direction(degrees: float):
     return sides[round(degrees / (360 / len(sides))) % len(sides)]
 
 
-def from_dict_wrap(cls: Type[_BaseGetDictArgs]):
-    return lambda x: x if isinstance(x, cls) else cls.from_dict(x)
-
-
 @attr.s(kw_only=True, frozen=True, slots=True)
 class SimCard(_BaseGetDictArgs):
     phone: str = field("phoneNumber")
     is_active: bool = field("isActive", bool)
-    balance: Balance | None = field_emp("balance", from_dict_wrap(Balance))
+    balance: Balance | None = field_emp("balance", Balance)
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
@@ -277,8 +272,8 @@ class CurrentState(_BaseGetDictArgs):
     identifier: int = field(("dev_id", "id"), int)
 
     active_sim: int | None = field_int("active_sim")
-    balance: Balance | None = field_emp("balance", Balance.conv)
-    balance_other: Balance | None = field_emp("balance1", Balance.conv)
+    balance: Balance | None = field_emp("balance", Balance)
+    balance_other: Balance | None = field_emp("balance1", Balance)
     bit_state: BitStatus | None = field_opt("bit_state_1", lambda x: BitStatus(int(x)))
     can_mileage: float | None = field_float("mileage_CAN")
     engine_rpm: int | None = field_int("engine_rpm")
