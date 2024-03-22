@@ -268,6 +268,24 @@ def lock_lat_lng_conv(x: Any):
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
+class WsTrackPoint(_BaseGetDictArgs):
+    timestamp: int = field("dtime", int)
+    latitude: float = field("x", float)
+    longitude: float = field("y", float)
+    fuel: int | None = field_int("fuel")
+    speed: int | None = field_int("speed")
+    flags: int | None = field_int("flags")
+
+
+@attr.s(kw_only=True, frozen=True, slots=True)
+class WsTrack(_BaseGetDictArgs):
+    track_id: int = field("id", int)
+    length: float = field("length", float)
+    speed: int = field("speed", int)
+    points: Sequence[WsTrackPoint] = field_list("points", WsTrackPoint)
+
+
+@attr.s(kw_only=True, frozen=True, slots=True)
 class CurrentState(_BaseGetDictArgs):
     identifier: int = field(("dev_id", "id"), int)
 
@@ -373,6 +391,7 @@ class CurrentState(_BaseGetDictArgs):
     online_timestamp_utc: int | None = field_int("online_utc", None)
     settings_timestamp_utc: int | None = field_int("setting_utc", None)
     command_timestamp_utc: int | None = field_int("command_utc", None)
+    track: WsTrack | None = field_emp("track", WsTrack)
 
     _last_updated: dict[str, int] = attr.ib(factory=dict, converter=lambda x: dict(x))
 
