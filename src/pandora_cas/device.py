@@ -194,6 +194,23 @@ class PandoraOnlineDevice:
         self.state = new_state
         return new_state, state_args
 
+    async def async_geocode(
+        self, language: str | None = None, full: bool = False
+    ) -> str | dict[str, str] | None:
+        """
+        Retrieve the geocoded location for the given latitude and longitude.
+        :param language: Language code
+        :param full: Whether to return the whole response
+        :return: (Whole response) OR (Short address) OR (None if empty)
+        """
+        if not (state := self.state):
+            raise ValueError("State is not available")
+        if None in (state.latitude, state.longitude):
+            raise ValueError("Both latitude and longitude are required")
+        return await self.account.async_geocode(
+            state.latitude, state.longitude, language, full
+        )
+
     async def async_fetch_last_event(self) -> TrackingEvent | None:
         try:
             return next(iter(await self.async_fetch_events(0, None, 1)))

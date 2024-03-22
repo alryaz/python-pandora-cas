@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pandora-cas"
-version = "0.0.9"
+version = "0.0.10"
 description = "Pandora Car Alarm System clientside API implementation"
 authors = ["Alexander Ryazanov <alryaz@alryaz.com>"]
 readme = "README.md"

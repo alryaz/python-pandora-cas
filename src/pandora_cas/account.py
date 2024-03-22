@@ -738,6 +738,38 @@ class PandoraOnlineAccount:
 
         return device_new_attrs, events
 
+    async def async_geocode(
+        self,
+        latitude: float,
+        longitude: float,
+        language: str | None = None,
+        full: bool = False,
+    ) -> str | dict[str, str] | None:
+        """
+        Retrieve the geocoded location for the given latitude and longitude.
+        :param latitude: Latitude
+        :param longitude: Longitude
+        :param language: Language code
+        :param full: Whether to return the whole response
+        :return: (Whole response) OR (Short address) OR (None if empty)
+        """
+        if not (access_token := self.access_token):
+            raise MissingAccessTokenError("Account is not authenticated")
+        if language is None:
+            language = "ru"
+        async with self._session.get(
+            self.BASE_URL + "/api/geo",
+            params={
+                "lang": language,
+                "lat": latitude,
+                "lon": longitude,
+                "access_token": access_token,
+                # "_": 0,
+            },
+        ) as response:
+            response = await self._handle_dict_response(response)
+        return response if full else response.get("short") or None
+
     def _process_ws_initial_state(
         self, device: "PandoraOnlineDevice", data: Mapping[str, Any]
     ) -> tuple[CurrentState, dict[str, Any]]:
