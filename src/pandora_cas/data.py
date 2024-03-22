@@ -5,6 +5,8 @@ __all__ = (
     "LiquidSensor",
     "TrackingEvent",
     "TrackingPoint",
+    "WsTrack",
+    "WsTrackPoint",
 )
 
 import logging
