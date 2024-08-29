@@ -40,7 +40,7 @@ _A: Final = "timestamp_source_attribute"
 _TFieldName = str | tuple[str, ...]
 
 DEFAULT_TIMESTAMP_SOURCE: Final = "state_timestamp_utc"
-IGNORED_ATTRIBUTES: Final[type["_BaseGetDictArgs"], set[str]] = {}
+IGNORED_ATTRIBUTES: Final[dict[type["_BaseGetDictArgs"], set[str]]] = {}
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
