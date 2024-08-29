@@ -44,11 +44,13 @@ class PandoraOnlineAccount:
     def __init__(
         self,
         session: aiohttp.ClientSession,
-        username: str,
-        password: str,
+        username: str | None = None,
+        password: str | None = None,
         access_token: str | None = None,
         utc_offset: int = 0,
+        language: str = "ru",
         *,
+        silence_update_warnings: bool = True,
         logger: (
             logging.Logger | logging.LoggerAdapter | type[logging.LoggerAdapter]
         ) = _LOGGER,
@@ -58,6 +60,7 @@ class PandoraOnlineAccount:
         :param username: Account username
         :param password: Account password
         :param access_token: Access token (optional)
+        :param silence_update_warnings: Whether to silence update warnings
         """
         if utc_offset is None:
             from calendar import timegm
@@ -69,9 +72,11 @@ class PandoraOnlineAccount:
             raise ValueError("utc offset cannot be greater than 24 hours")
 
         self._utc_offset = utc_offset
-        self._username = username
-        self._password = password
+        self.username = username
+        self.password = password
         self.access_token = access_token
+        self.language = language
+        self.silence_update_warnings = silence_update_warnings
         self._user_id: int | None = None
         self._session = session
 
@@ -105,11 +110,6 @@ class PandoraOnlineAccount:
     @property
     def user_id(self) -> int | None:
         return self._user_id
-
-    @property
-    def username(self) -> str:
-        """Username accessor."""
-        return self._username
 
     @property
     def last_update(self) -> int:
@@ -265,14 +265,21 @@ class PandoraOnlineAccount:
         :param access_token: Access token for authentication
         :raises MalformedResponseError: Issues related to user ID
         """
+        if not (username := self.username):
+            raise ValueError("Username is required")
+        if not (password := self.password):
+            raise ValueError("Password is required")
+        if (language := self.language) is None:
+            raise ValueError("Language must be a string")
+
         self.logger.debug(f"Authenticating access token: {access_token}")
 
         async with self._session.post(
             self.BASE_URL + "/api/users/login",
             data={
-                "login": self._username,
-                "password": self._password,
-                "lang": "ru",
+                "login": username,
+                "password": password,
+                "lang": language,
                 "v": "3",
                 "utc_offset": self._utc_offset // 60,
                 "access_token": access_token,
@@ -398,7 +405,10 @@ class PandoraOnlineAccount:
                 except LookupError:
                     self.logger.debug(f"Adding new device with ID {device_id}")
                     self._devices[device_id] = PandoraOnlineDevice(
-                        self, device_attributes, logger=self.logger
+                        self,
+                        device_attributes,
+                        logger=self.logger,
+                        silence_update_warnings=self.silence_update_warnings,
                     )
                 else:
                     device_object.attributes = device_attributes

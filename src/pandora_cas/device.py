@@ -41,6 +41,7 @@ class PandoraOnlineDevice:
         utc_offset: int | None = None,
         system_info: Mapping[str, Any] | None = None,
         *,
+        silence_update_warnings: bool = True,
         logger: logging.Logger | logging.LoggerAdapter = _LOGGER,
     ) -> None:
         """
@@ -60,6 +61,7 @@ class PandoraOnlineDevice:
         # Control timeout setting
         self.control_timeout = control_timeout
 
+        self.silence_update_warnings = silence_update_warnings
         self.logger = logger
 
     def __repr__(self):
@@ -138,7 +140,9 @@ class PandoraOnlineDevice:
             evolve_args["latitude"] = value.latitude
             evolve_args["longitude"] = value.longitude
 
-            self._current_state = current_state.evolve(**evolve_args)
+            self._current_state = current_state.evolve(
+                False, self.silence_update_warnings, **evolve_args
+            )
 
         self._last_point = value
 
@@ -150,7 +154,11 @@ class PandoraOnlineDevice:
     def last_event(self, value: TrackingEvent | None) -> None:
         self._last_event = value
 
-    def update_current_state(self, **state_args) -> tuple[CurrentState, dict[str, Any]]:
+    def update_current_state(
+        self, silence_update_warnings: bool | None = None, **state_args
+    ) -> tuple[CurrentState, dict[str, Any]]:
+        if silence_update_warnings is None:
+            silence_update_warnings = self.silence_update_warnings
         # Extract UTC offset
         prefixes = ("online", "state")
         utc_offset = self.utc_offset
@@ -181,9 +189,11 @@ class PandoraOnlineDevice:
         if self.state is None:
             self.logger.debug(f"Initializing state object")
             new_state = CurrentState(**state_args)
-        elif state_args := self.state.evolve_args(**state_args):
+        elif state_args := self.state.evolve_args(
+            silence_update_warnings, **state_args
+        ):
             self.logger.debug(f"Updating state object")
-            new_state = self.state.evolve(**state_args)
+            new_state = self.state.evolve(False, silence_update_warnings, **state_args)
         else:
             self.logger.debug(f"No attributes to update")
             return self.state, {}

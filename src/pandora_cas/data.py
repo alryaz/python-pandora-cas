@@ -40,6 +40,7 @@ _A: Final = "timestamp_source_attribute"
 _TFieldName = str | tuple[str, ...]
 
 DEFAULT_TIMESTAMP_SOURCE: Final = "state_timestamp_utc"
+IGNORED_ATTRIBUTES: Final[type["_BaseGetDictArgs"], set[str]] = {}
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
@@ -64,12 +65,18 @@ class _BaseGetDictArgs(attr.AttrsInstance, ABC):
                     break
 
         if all_keys:
-            _LOGGER.info(
-                f"[{name}] New attributes detected! Please, report this to the developer ASAP."
-            )
-            # noinspection PyTypeChecker
-            for key in sorted(all_keys, key=str.lower):
-                _LOGGER.info(f"[{name}]  {key} ({type(data[key])}) = {repr(data[key])}")
+            if cls in IGNORED_ATTRIBUTES:
+                # noinspection PyTypeChecker
+                all_keys.difference_update(IGNORED_ATTRIBUTES[cls])
+            if all_keys:
+                _LOGGER.info(
+                    f"[{name}] New attributes detected! Please, report this to the developer."
+                )
+                # noinspection PyTypeChecker
+                for key in sorted(all_keys, key=str.lower):
+                    _LOGGER.info(
+                        f"[{name}]  {key} ({type(data[key])}) = {repr(data[key])}"
+                    )
 
         return kwargs
 
@@ -219,6 +226,9 @@ class FuelTank(_FloatValue):
     ras_t: float | None = field_float("")
 
 
+IGNORED_ATTRIBUTES[FuelTank] = {"m", "ras", "ras_a", "ras_t", "ras_z", "val"}
+
+
 def _degrees_to_direction(degrees: float):
     sides = (
         "N",
@@ -287,9 +297,10 @@ class WsTrack(_BaseGetDictArgs):
     points: Sequence[WsTrackPoint] = field_list("points", WsTrackPoint)
 
 
+# noinspection SpellCheckingInspection
 @attr.s(kw_only=True, frozen=True, slots=True)
 class CurrentState(_BaseGetDictArgs):
-    identifier: int = field(("dev_id", "id"), int)
+    identifier: int = field(("dev_id", "id"), int, None)
 
     active_sim: int | None = field_int("active_sim")
     balance: Balance | None = field_emp("balance", Balance)
@@ -305,7 +316,7 @@ class CurrentState(_BaseGetDictArgs):
     interior_temperature: float | None = field_float("cabin_temp")
     is_evacuating: bool | None = field_bool("evaq")
     is_moving: bool | None = field_bool("move")
-    is_online: bool | None = field_bool("online_mode")
+    is_online: bool | None = field_bool("online_mode", None)
     key_number: int | None = field_int("brelok")
     latitude: float | None = field_float("x")
     lock_latitude: float | None = field_opt("lock_x", lock_lat_lng_conv)
@@ -320,8 +331,10 @@ class CurrentState(_BaseGetDictArgs):
     tag_number: int | None = field_int("metka")
     tracking_remaining: float | None = field_float("track_remains")
     voltage: float | None = field_float("voltage")
+    internal_voltage: float | None = field_float("internal_power")
     gear: str | None = field_emp("gear")
     battery_warm_up: bool | None = field_bool("battery_warm_up")
+    lbs_coords: bool | None = field_bool("Lbs_coords")
 
     can_belt_back_center: bool | None = field_bool("CAN_back_center_belt")
     can_belt_back_left: bool | None = field_bool("CAN_back_left_belt")
@@ -429,7 +442,7 @@ class CurrentState(_BaseGetDictArgs):
     def get_ws_point_args(cls, data: Mapping[str, Any], **kwargs) -> dict[str, Any]:
         return cls.get_dict_args(data, **kwargs)
 
-    def evolve_args(self, **changes) -> dict[str, Any]:
+    def evolve_args(self, silence_warnings: bool = True, **changes) -> dict[str, Any]:
         assert attr.has(cls := self.__class__)
         attributes = {a.alias: a for a in attr.fields(cls)}
         warn_updates_per_key = {}
@@ -445,7 +458,10 @@ class CurrentState(_BaseGetDictArgs):
             if timestamp_key is not None:
                 timestamp_value = changes.get(timestamp_key)
                 if timestamp_value is None:
-                    warn_updates_per_key.setdefault(timestamp_key, set()).add(attribute)
+                    if not silence_warnings:
+                        warn_updates_per_key.setdefault(timestamp_key, set()).add(
+                            attribute
+                        )
                 elif last_updated[attribute] > timestamp_value:
                     skip_updates_per_key.setdefault(timestamp_key, set()).add(attribute)
                     continue
@@ -471,13 +487,42 @@ class CurrentState(_BaseGetDictArgs):
             )
         return init_args
 
-    def evolve(self, return_new_object_on_empty_data: bool = False, **changes):
-        evolve_args = self.evolve_args(**changes)
+    def evolve(
+        self,
+        return_new_object_on_empty_data: bool = False,
+        silence_warnings: bool = True,
+        **changes,
+    ):
+        evolve_args = self.evolve_args(silence_warnings, **changes)
         return (
             attr.evolve(self, **evolve_args)
             if return_new_object_on_empty_data or evolve_args
             else self
         )
+
+
+# noinspection SpellCheckingInspection
+IGNORED_ATTRIBUTES[CurrentState] = {
+    # Unparsed, and likely unneeded attributes
+    "benish_mode",
+    "cmd_code",
+    "cmd_result",
+    "counter1",
+    "counter2",
+    "engine_remains",
+    "gps_ready",
+    "imei",
+    "land",
+    # From track, supposedly
+    "length",
+    "max_speed",
+    "timezone",
+    "track_id",
+    "dtime",
+    "flags",
+    "tconsum",
+    "props",
+}
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
