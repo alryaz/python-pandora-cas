@@ -18,7 +18,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 DEFAULT_CONTROL_TIMEOUT: Final = 30.0
 
 
-def _max_none(*args):
+def _max_none(args):
     try:
         return max(a for a in args if a is not None)
     except TypeError:
