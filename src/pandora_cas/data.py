@@ -526,71 +526,54 @@ IGNORED_ATTRIBUTES[CurrentState] = {
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
-class TrackingEvent:
-    identifier: int = attr.ib(metadata={_S: "identifier"})
-    device_id: int = attr.ib(metadata={_S: "device_id"})
-    bit_state: BitStatus = attr.ib(metadata={_S: "bit_state"})
-    cabin_temperature: float = attr.ib(metadata={_S: "cabin_temperature"})
-    engine_rpm: float = attr.ib(metadata={_S: "engine_rpm"})
-    engine_temperature: float = attr.ib(metadata={_S: "engine_temperature"})
-    event_id_primary: int = attr.ib(metadata={_S: "event_id_primary"})
-    event_id_secondary: int = attr.ib(metadata={_S: "event_id_secondary"})
-    fuel: int = attr.ib(metadata={_S: "fuel"})
-    gsm_level: int = attr.ib(metadata={_S: "gsm_level"})
-    exterior_temperature: int = attr.ib(metadata={_S: "exterior_temperature"})
-    voltage: float = attr.ib(metadata={_S: "voltage"})
-    latitude: float = attr.ib(metadata={_S: "latitude"})
-    longitude: float = attr.ib(metadata={_S: "longitude"})
-    timestamp: int = attr.ib(metadata={_S: "timestamp"})
-    recorded_timestamp: int = attr.ib(metadata={_S: "recorded_timestamp"})
+class TrackingEvent(_BaseGetDictArgs):
+    # Event identifiers
+    identifier: int = field("id", int, None)
+    event_id_primary: int | None = field_int("eventid1")
+    event_id_secondary: int | None = field_int("eventid2")
+    event_type: int | None = field_int("type")
+
+    # Common fields
+    device_id: int | None = field_int("dev_id")
+    timestamp: int | None = field_int("dtime")  # "time" ?
+    recorded_timestamp: int | None = field_int("dtime_rec")
+
+    # Location fields
+    latitude: float | None = field_float("x")
+    longitude: float | None = field_float("y")
+    rotation: float | None = field_float("rot")
+    start_latitude: float | None = field_float("start_x")
+    start_longitude: float | None = field_float("start_y")
+    end_latitude: float | None = field_float("end_x")
+    end_longitude: float | None = field_float("end_y")
+    geozone_id: int | None = field_int("geozone_id")
+    length: float | None = field_float("len")
+    points: int | None = field_int("points")
+
+    # State fields
+    bit_state: BitStatus | None = field_opt("bit_state_1", lambda x: BitStatus(int(x)))
+    fuel: int | None = field_int("fuel")
+    gsm_level: int | None = field_int("gsm_level")
+    cabin_temperature: float | None = field_float("cabin_temp")
+    engine_temperature: float | None = field_float("engine_temp")
+    exterior_temperature: int | None = field_int("out_temp")
+    voltage: float | None = field_float("voltage")
+    speed: float | None = field_float("speed")
+    engine_rpm: int | None = field_int("engine_rpm")
+
+    # Extra fields (unknown)
+    # start: int | None = field_int("start")
+    # end: int | None = field_int("end")
+    # param_id: int | None = field_int("param_id")
+    # rule_id: int | None = field_int("rule_id")
+    # body: str | None = field_emp("body")
+    # alarm: int | None = field_int("alarm")
+    # closed: int | None = field_int("closed")
+    # values: dict[str, Any] | None = field_emp("values")
 
     @property
     def primary_event_enum(self) -> PrimaryEventID:
         return PrimaryEventID(self.event_id_primary)
-
-    @classmethod
-    def get_dict_args(cls, data: Mapping[str, Any], **kwargs):
-        if "identifier" not in kwargs:
-            kwargs["identifier"] = int(data["id"])
-        if "device_id" not in kwargs:
-            kwargs["device_id"] = int(data["dev_id"])
-        if "bit_state" not in kwargs:
-            kwargs["bit_state"] = BitStatus(int(data["bit_state_1"]))
-        if "cabin_temperature" not in kwargs:
-            kwargs["cabin_temperature"] = data["cabin_temp"]
-        if "engine_rpm" not in kwargs:
-            kwargs["engine_rpm"] = data["engine_rpm"]
-        if "engine_temperature" not in kwargs:
-            kwargs["engine_temperature"] = data["engine_temp"]
-        if "event_id_primary" not in kwargs:
-            kwargs["event_id_primary"] = data["eventid1"]
-        if "event_id_secondary" not in kwargs:
-            kwargs["event_id_secondary"] = data["eventid2"]
-        if "fuel" not in kwargs:
-            kwargs["fuel"] = data["fuel"]
-        if "gsm_level" not in kwargs:
-            kwargs["gsm_level"] = data["gsm_level"]
-        if "exterior_temperature" not in kwargs:
-            kwargs["exterior_temperature"] = data["out_temp"]
-        if "timestamp" not in kwargs:
-            try:
-                timestamp = data["dtime"]
-            except KeyError:
-                timestamp = data["time"]
-            kwargs["timestamp"] = timestamp
-        if "recorded_timestamp" not in kwargs:
-            kwargs["recorded_timestamp"] = data["dtime_rec"]
-        if "voltage" not in kwargs:
-            kwargs["voltage"] = data["voltage"]
-        if "latitude" not in kwargs:
-            kwargs["latitude"] = data["x"]
-        if "longitude" not in kwargs:
-            kwargs["longitude"] = data["y"]
-        return kwargs
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any], **kwargs):
-        return cls(**cls.get_dict_args(data, **kwargs))
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
