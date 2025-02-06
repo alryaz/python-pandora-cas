@@ -419,25 +419,25 @@ class PandoraOnlineDevice:
     @property
     def settings_timestamp(self) -> int | None:
         if self._system_info is None:
-            return
+            return None
         if not (ts := self._system_info["dtime"]):
-            return
+            return None
         return int(datetime.fromisoformat(ts).timestamp())
 
     @property
     def vin(self) -> str | None:
         if self._system_info is None:
-            return
+            return None
         if not (vin := self._system_info["vin"]):
-            return
+            return None
         return vin
 
     @property
     def imei(self) -> str | None:
         if self._system_info is None:
-            return
+            return None
         if not (imei := self._system_info["imei"]):
-            return
+            return None
         return imei
 
     @property
