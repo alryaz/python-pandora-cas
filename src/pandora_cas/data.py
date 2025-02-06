@@ -323,6 +323,7 @@ class CurrentState(_BaseGetDictArgs):
     lock_longitude: float | None = field_opt("lock_y", lock_lat_lng_conv)
     longitude: float | None = field_float("y")
     mileage: float | None = field_float("mileage")
+    engine_hours: float | None = field_float("motohours")
     phone: str | None = field_emp("phone")
     phone_other: str | None = field_emp("phone1")
     relay: int | None = field_int("relay")
@@ -378,6 +379,7 @@ class CurrentState(_BaseGetDictArgs):
     can_mileage_by_battery: float | None = field_float("CAN_mileage_by_battery")
     can_mileage_to_empty: float | None = field_float("CAN_mileage_to_empty")
     can_mileage_to_maintenance: float | None = field_float("CAN_mileage_to_maintenance")
+    can_engine_hours: float | None = field_float("motohours_CAN")
     can_need_pads_exchange: bool | None = field_bool("CAN_need_pads_exchange")
     can_seat_taken: bool | None = field_bool("CAN_seat_taken")
 
@@ -537,6 +539,8 @@ class TrackingEvent(_BaseGetDictArgs):
     device_id: int | None = field_int("dev_id")
     timestamp: int | None = field_int("dtime")  # "time" ?
     recorded_timestamp: int | None = field_int("dtime_rec")
+    timezone: int | None = field_int("timezone")
+    # weather: int | None = field_int("weather")
 
     # Location fields
     latitude: float | None = field_float("x")
@@ -549,6 +553,7 @@ class TrackingEvent(_BaseGetDictArgs):
     geozone_id: int | None = field_int("geozone_id")
     length: float | None = field_float("len")
     points: int | None = field_int("points")
+    lbs_coords: bool | None = field_bool("lbs_mode")
 
     # State fields
     bit_state: BitStatus | None = field_opt("bit_state_1", lambda x: BitStatus(int(x)))
