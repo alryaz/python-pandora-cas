@@ -471,7 +471,7 @@ class CurrentState(_BaseGetDictArgs):
 
         if warn_updates_per_key:
             for timestamp_key, attributes in warn_updates_per_key.items():
-                _LOGGER.warning(
+                _LOGGER.debug(
                     f"Updating attributes {', '.join(sorted(attributes))} "
                     f"without timestamp provided at {timestamp_key}"
                 )
