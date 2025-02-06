@@ -671,7 +671,13 @@ class PandoraOnlineAccount:
         # Select last timestamp if none provided
         _timestamp = self._last_update if timestamp is None else timestamp
 
-        self.logger.info(f"Fetching changes since {_timestamp}")
+        debug_str = (
+            "initial state"
+            if _timestamp < 0
+            else f"since {datetime.fromtimestamp(_timestamp).isoformat()}"
+        )
+
+        self.logger.info(f"Fetching {debug_str}")
 
         async with self._session.get(
             self.BASE_URL + "/api/updates",
@@ -814,6 +820,7 @@ class PandoraOnlineAccount:
     # The routines are virtually the same
     _process_ws_event = _process_http_event
 
+    # noinspection PyMethodMayBeStatic
     def _process_ws_point(
         self,
         device: "PandoraOnlineDevice",
