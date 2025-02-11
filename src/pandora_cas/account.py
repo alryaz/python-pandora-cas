@@ -811,7 +811,7 @@ class PandoraOnlineAccount:
         :param data: Data containing update
         :return: [Device state, Dictionary of real updates]
         """
-        self.logger.debug(f"Updating state for {device.device_id}")
+        self.logger.debug(f"Updating state for {device.device_id} from {data}")
 
         return device.update_current_state(
             **CurrentState.get_ws_state_args(data, identifier=device.device_id),
