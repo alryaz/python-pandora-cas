@@ -20,7 +20,13 @@ from typing import (
 import aiohttp
 from async_timeout import timeout
 
-from pandora_cas.data import FuelTank, CurrentState, TrackingEvent, TrackingPoint
+from pandora_cas.data import (
+    FuelTank,
+    CurrentState,
+    TrackingEvent,
+    TrackingPoint,
+    HTTPTrack,
+)
 from pandora_cas.device import PandoraOnlineDevice
 from pandora_cas.enums import CommandID, WSMessageType
 from pandora_cas.errors import (
@@ -517,6 +523,37 @@ class PandoraOnlineAccount:
         return sorted(devices_settings[device_id], key=lambda x: x.get("dtime") or 0)[
             -1
         ]
+
+    async def async_fetch_track_data(
+        self, device_id: int | str, track_id: int | str, hash: str | None = None
+    ) -> HTTPTrack:
+        """
+        Retrieve track data for target device.
+
+        :raises MissingAccessTokenError: No access token for request.
+        :raises MalformedResponseError: Track data is malformed beyond reading.
+        :raises aiohttp.ClientError: Error requesting data.
+        """
+        if not (access_token := self.access_token):
+            raise MissingAccessTokenError
+
+        self.logger.debug(f"Retrieving track {track_id} data for device {device_id}")
+
+        params = {
+            "access_token": access_token,
+            "dev_id": device_id,
+            "id": track_id,
+            "only_items": 1,
+            "get_tank": 1,
+        }
+        if hash is not None:
+            params["hash"] = hash
+        async with self._session.get(
+            self.BASE_URL + "/api/tracks/data", params=params
+        ) as response:
+            tracks_data = await self._handle_list_response(response)
+
+        return list(map(HTTPTrack.from_dict, tracks_data))[0]
 
     @staticmethod
     def parse_device_id(data: Mapping[str, Any]) -> int:

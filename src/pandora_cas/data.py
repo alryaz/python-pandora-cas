@@ -7,6 +7,7 @@ __all__ = (
     "TrackingPoint",
     "WsTrack",
     "WsTrackPoint",
+    "HTTPTrack",
 )
 
 import logging
@@ -291,7 +292,7 @@ def lock_lat_lng_conv(x: Any):
 
 @attr.s(kw_only=True, frozen=True, slots=True)
 class WsTrackPoint(_BaseGetDictArgs):
-    timestamp: int = field("dtime", int)
+    timestamp: int = field(("dtime", "ts"), int)
     latitude: float = field("x", float)
     longitude: float = field("y", float)
     fuel: int | None = field_int("fuel")
@@ -301,10 +302,18 @@ class WsTrackPoint(_BaseGetDictArgs):
 
 @attr.s(kw_only=True, frozen=True, slots=True)
 class WsTrack(_BaseGetDictArgs):
-    track_id: int = field("id", int)
-    length: float = field("length", float)
-    speed: int = field("speed", int)
+    identifier: int = field("id", int)
+    length: float | None = field_float("length")
+    speed: int | None = field_int("speed")
     points: Sequence[WsTrackPoint] = field_list("points", WsTrackPoint)
+
+
+@attr.s(kw_only=True, frozen=True, slots=True)
+class HTTPTrack(WsTrack):
+    is_closed: bool | None = field_bool("closed")
+    start_timestamp: int | None = field_int("start")
+    end_timestamp: int | None = field_int("end")
+    points: Sequence[WsTrackPoint] = field_list(("points", "items"), WsTrackPoint)
 
 
 # noinspection SpellCheckingInspection

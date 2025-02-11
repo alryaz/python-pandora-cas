@@ -6,7 +6,7 @@ from datetime import datetime
 from types import MappingProxyType
 from typing import Mapping, Any, Final, TYPE_CHECKING
 
-from pandora_cas.data import CurrentState, TrackingPoint, TrackingEvent
+from pandora_cas.data import CurrentState, TrackingPoint, TrackingEvent, HTTPTrack
 from pandora_cas.enums import CommandID, Features
 from pandora_cas.errors import PandoraOnlineException
 
@@ -236,6 +236,9 @@ class PandoraOnlineDevice:
         return await self.account.async_fetch_events(
             timestamp_from, timestamp_to, limit, self.device_id
         )
+
+    async def async_fetch_track_data(self, track_id: int | str) -> HTTPTrack:
+        return await self.account.async_fetch_track_data(self.device_id, track_id)
 
     async def async_update_system_info(self) -> dict[str, Any]:
         self._system_info = await self.account.async_fetch_device_system(self.device_id)
