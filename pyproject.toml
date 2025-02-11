@@ -17,6 +17,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3 :: Only",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
@@ -27,9 +28,14 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
+aiohttp = "*"
+attrs = "*"
 
 [tool.poetry.urls]
 "Bug Reports" = "https://github.com/alryaz/python-pandora-cas/issues"
+
+[tool.poetry.group.dev.dependencies]
+deepmerge = "^2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -37,5 +43,5 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py310', 'py311', 'py312', 'py313']
 include = '\.pyi?$'
