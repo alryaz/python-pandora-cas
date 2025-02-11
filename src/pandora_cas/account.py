@@ -18,7 +18,6 @@ from typing import (
 )
 
 import aiohttp
-from async_timeout import timeout
 
 from pandora_cas.data import (
     FuelTank,
@@ -37,6 +36,11 @@ from pandora_cas.errors import (
     SessionExpiredError,
     InvalidAccessTokenError,
 )
+
+try:
+    from asyncio import timeout
+except ImportError:
+    from async_timeout import timeout
 
 _LOGGER: Final = logging.getLogger(__name__)
 
