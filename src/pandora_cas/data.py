@@ -8,6 +8,7 @@ __all__ = (
     "WsTrack",
     "WsTrackPoint",
     "HTTPTrack",
+    "OBDCode",
 )
 
 import logging
@@ -316,6 +317,16 @@ class HTTPTrack(WsTrack):
     points: Sequence[WsTrackPoint] = field_list(("points", "items"), WsTrackPoint)
 
 
+@attr.s(kw_only=True, frozen=True, slots=True)
+class OBDCode(_BaseGetDictArgs):
+    code: str = field("code", str, None)
+    timestamp: int = field("dtime", int, None)
+
+    @classmethod
+    def conv(cls, x: Any):
+        return cls(code=x) if isinstance(x, (str, int)) else super().conv(x)
+
+
 # noinspection SpellCheckingInspection
 @attr.s(kw_only=True, frozen=True, slots=True)
 class CurrentState(_BaseGetDictArgs):
@@ -355,6 +366,7 @@ class CurrentState(_BaseGetDictArgs):
     battery_warm_up: bool | None = field_bool("battery_warm_up")
     lbs_coords: bool | None = field_bool("Lbs_coords")
     engine_remains: int | None = field_int("engine_remains")
+    obd_error_codes: Sequence[OBDCode] = field_list("OBD_codes", OBDCode)
 
     # Seatbelt handling
     can_belt_back_center: bool | None = field_bool("CAN_back_center_belt")
@@ -550,7 +562,6 @@ IGNORED_ATTRIBUTES[CurrentState] = {
     "tconsum": None,
     "props": None,
     # useless default values
-    "OBD_codes": [],
     "loadaxis": "",
     "smeter": 0,
     "socket1": 0,
