@@ -312,7 +312,6 @@ class CurrentState(_BaseGetDictArgs):
     exterior_temperature: float | None = field_float("out_temp")
     fuel: float | None = field_float("fuel")
     gsm_level: int | None = field_int("gsm_level")
-    imei: int | None = field_int("")
     interior_temperature: float | None = field_float("cabin_temp")
     is_evacuating: bool | None = field_bool("evaq")
     is_moving: bool | None = field_bool("move")
