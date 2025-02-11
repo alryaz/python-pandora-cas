@@ -440,6 +440,10 @@ class PandoraOnlineAccount:
         ) as response:
             data = await self._handle_dict_response(response)
 
+        self.logger.debug(
+            f"Command {command_id} execution on device {device_id} response: {data}"
+        )
+
         try:
             status = data["action_result"][str(device_id)]
         except (LookupError, AttributeError, TypeError):
@@ -477,8 +481,6 @@ class PandoraOnlineAccount:
         if status != "success":
             self.logger.error(f"Error waking up device {device_id}: {status}")
             raise PandoraOnlineException(status)
-
-        response.raise_for_status()
 
     async def async_fetch_device_system(self, device_id: int | str) -> dict[str, Any]:
         """
@@ -562,7 +564,11 @@ class PandoraOnlineAccount:
                 value = 0.0
 
             if fuel_tank is None:
-                fuel_tanks.append(FuelTank(id=id_, value=value, ras=ras, ras_t=ras_t))
+                fuel_tanks.append(
+                    FuelTank(
+                        id=id_, value=value, consumption=ras, consumption_type=ras_t
+                    )
+                )
             else:
                 object.__setattr__(fuel_tank, "value", value)
                 object.__setattr__(fuel_tank, "ras", ras)
