@@ -346,6 +346,7 @@ class CurrentState(_BaseGetDictArgs):
     gear: str | None = field_emp("gear")
     battery_warm_up: bool | None = field_bool("battery_warm_up")
     lbs_coords: bool | None = field_bool("Lbs_coords")
+    engine_remains: int | None = field_int("engine_remains")
 
     # Seatbelt handling
     can_belt_back_center: bool | None = field_bool("CAN_back_center_belt")
