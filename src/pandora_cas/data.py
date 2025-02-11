@@ -29,7 +29,7 @@ from typing import (
 
 import attr
 
-from pandora_cas.enums import PrimaryEventID, BitStatus
+from pandora_cas.enums import PrimaryEventID, BitStatus, FuelConsumptionType
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -228,19 +228,16 @@ class Balance(_FloatValue):
 @attr.s(kw_only=True, frozen=True, slots=True)
 class FuelTank(_FloatValue):
     id: int = field("id", int, default=0)
-    ras: float | None = field_float("")
-    ras_t: float | None = field_float("")
+    value: float | None = field_float("val")
+    consumption: float | None = field_float("ras")
+    consumption_total: float | None = field_float("ras_a")
+    consumption_since_refuel: float | None = field_float("ras_z")
+    consumption_type: FuelConsumptionType | None = field_opt(
+        "ras_t", lambda x: FuelConsumptionType(int(x))
+    )
 
 
-
-IGNORED_ATTRIBUTES[FuelTank] = {
-    "m": None,
-    "ras": None,
-    "ras_a": None,
-    "ras_t": None,
-    "ras_z": None,
-    "val": None,
-}
+IGNORED_ATTRIBUTES[FuelTank] = {"m": None}
 
 
 def _degrees_to_direction(degrees: float):
