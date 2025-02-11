@@ -40,7 +40,7 @@ _A: Final = "timestamp_source_attribute"
 _TFieldName = str | tuple[str, ...]
 
 DEFAULT_TIMESTAMP_SOURCE: Final = "state_timestamp_utc"
-IGNORED_ATTRIBUTES: Final[dict[type["_BaseGetDictArgs"], set[str]]] = {}
+IGNORED_ATTRIBUTES: Final[dict[type["_BaseGetDictArgs"], dict[str, Any]]] = {}
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
@@ -64,10 +64,16 @@ class _BaseGetDictArgs(attr.AttrsInstance, ABC):
                     kwargs[init_name] = data[key]
                     break
 
+        # Check for new attributes
         if all_keys:
-            if cls in IGNORED_ATTRIBUTES:
-                # noinspection PyTypeChecker
-                all_keys.difference_update(IGNORED_ATTRIBUTES[cls])
+            # Check for ignored attributes
+            ignored_attributes = IGNORED_ATTRIBUTES.get(cls, {})
+            for key in ignored_attributes.keys() & all_keys:
+                value = ignored_attributes[key]
+                if value is None or value == data[key]:
+                    all_keys.discard(key)
+
+            # Log any remaining keys
             if all_keys:
                 _LOGGER.info(
                     f"[{name}] New attributes detected! Please, report this to the developer."
@@ -226,7 +232,15 @@ class FuelTank(_FloatValue):
     ras_t: float | None = field_float("")
 
 
-IGNORED_ATTRIBUTES[FuelTank] = {"m", "ras", "ras_a", "ras_t", "ras_z", "val"}
+
+IGNORED_ATTRIBUTES[FuelTank] = {
+    "m": None,
+    "ras": None,
+    "ras_a": None,
+    "ras_t": None,
+    "ras_z": None,
+    "val": None,
+}
 
 
 def _degrees_to_direction(degrees: float):
@@ -512,24 +526,29 @@ class CurrentState(_BaseGetDictArgs):
 # noinspection SpellCheckingInspection
 IGNORED_ATTRIBUTES[CurrentState] = {
     # Unparsed, and likely unneeded attributes
-    "benish_mode",
-    "cmd_code",
-    "cmd_result",
-    "counter1",
-    "counter2",
-    "engine_remains",
-    "gps_ready",
-    "imei",
-    "land",
+    "benish_mode": None,
+    "cmd_code": None,
+    "cmd_result": None,
+    "counter1": None,
+    "counter2": None,
+    "gps_ready": None,
+    "imei": None,
+    "land": None,
     # From track, supposedly
-    "length",
-    "max_speed",
-    "timezone",
-    "track_id",
-    "dtime",
-    "flags",
-    "tconsum",
-    "props",
+    "length": None,
+    "max_speed": None,
+    "timezone": None,
+    "track_id": None,
+    "dtime": None,
+    "flags": None,
+    "tconsum": None,
+    "props": None,
+    # useless default values
+    "OBD_codes": [],
+    "loadaxis": "",
+    "smeter": 0,
+    "socket1": 0,
+    "socket2": 0,
 }
 
 
