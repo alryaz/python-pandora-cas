@@ -8,6 +8,7 @@ __all__ = (
     "BitStatus",
     "Features",
     "PrimaryEventID",
+    "FuelConsumptionType",
 )
 
 from enum import StrEnum, IntEnum, IntFlag, Flag, auto
@@ -316,3 +317,8 @@ class PrimaryEventID(IntEnum):
 
 class CommandParams(StrEnum):
     CLIMATE_TEMP = "climate_temp"
+
+
+class FuelConsumptionType(IntEnum):
+    LITERS_PER_100_KM = 1
+    LITERS_PER_HOUR = 2
