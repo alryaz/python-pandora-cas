@@ -336,23 +336,27 @@ class CurrentState(_BaseGetDictArgs):
     battery_warm_up: bool | None = field_bool("battery_warm_up")
     lbs_coords: bool | None = field_bool("Lbs_coords")
 
+    # Seatbelt handling
     can_belt_back_center: bool | None = field_bool("CAN_back_center_belt")
     can_belt_back_left: bool | None = field_bool("CAN_back_left_belt")
     can_belt_back_right: bool | None = field_bool("CAN_back_right_belt")
     can_belt_driver: bool | None = field_bool("CAN_driver_belt")
     can_belt_passenger: bool | None = field_bool("CAN_passenger_belt")
 
+    # Window handling
     can_glass_back_left: bool | None = field_bool("CAN_back_left_glass")
     can_glass_back_right: bool | None = field_bool("CAN_back_right_glass")
     can_glass_driver: bool | None = field_bool("CAN_driver_glass")
     can_glass_passenger: bool | None = field_bool("CAN_passenger_glass")
 
+    # Tire pressure
     can_tpms_back_left: float | None = field_float("CAN_TMPS_forvard_left")
     can_tpms_back_right: float | None = field_float("CAN_TMPS_forvard_right")
     can_tpms_front_left: float | None = field_float("CAN_TMPS_back_left")
     can_tpms_front_right: float | None = field_float("CAN_TMPS_back_right")
     can_tpms_reserve: float | None = field_float("CAN_TMPS_reserve")
 
+    # Climate handling
     climate_firmware: int | None = field_int("fw_climate")
     can_climate: bool | None = field_bool("CAN_climate")
     can_climate_ac: bool | None = field_bool("CAN_climate_ac")
@@ -364,12 +368,14 @@ class CurrentState(_BaseGetDictArgs):
     can_climate_steering_heat: bool | None = field_bool("CAN_climate_steering_heat")
     can_climate_temperature: int | None = field_int("CAN_climate_temp")
 
+    # Heater handling
     heater_errors: Sequence[int] = field_list("heater_errors", int)
     heater_flame: bool | None = field_bool("heater_flame")
     heater_power: bool | None = field_bool("heater_power")
     heater_temperature: float | None = field_float("heater_temperature")
     heater_voltage: float | None = field_float("heater_voltage")
 
+    # CAN attributes
     can_average_speed: float | None = field_float("CAN_average_speed")
     can_consumption: float | None = field_float("CAN_consumption")
     can_consumption_after: float | None = field_float("CAN_consumption_after")
@@ -382,6 +388,7 @@ class CurrentState(_BaseGetDictArgs):
     can_need_pads_exchange: bool | None = field_bool("CAN_need_pads_exchange")
     can_seat_taken: bool | None = field_bool("CAN_seat_taken")
 
+    # EV-s handling
     ev_state_of_charge: float | None = field_float("SOC")
     ev_state_of_health: float | None = field_float("SOH")
     ev_charging_connected: bool | None = field_bool("charging_connect")
