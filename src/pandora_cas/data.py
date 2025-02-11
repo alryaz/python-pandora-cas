@@ -12,7 +12,6 @@ __all__ = (
 import logging
 from abc import ABC
 from collections import ChainMap
-from time import time
 from types import MappingProxyType
 from typing import (
     Mapping,
@@ -605,13 +604,19 @@ class TrackingEvent(_BaseGetDictArgs):
 
 
 @attr.s(kw_only=True, frozen=True, slots=True)
-class TrackingPoint:
-    device_id: int = attr.ib(metadata={_S: "device_id"})
-    latitude: float = attr.ib(metadata={_S: "latitude"})
-    longitude: float = attr.ib(metadata={_S: "longitude"})
-    track_id: int | None = field_int("")
-    timestamp: float = attr.ib(default=time, metadata={_S: "timestamp"})
-    fuel: int | None = field_int("")
-    speed: float | None = field_float("")
-    max_speed: float | None = field_float("")
-    length: float | None = field_float("")
+class TrackingPoint(_BaseGetDictArgs):
+    device_id: int = field("dev_id", int, None)
+    track_id: int = field("track_id", int, None)
+    timestamp: int = field("dtime", int, None)
+
+    # Location-related
+    latitude: float | None = field_float("x")
+    longitude: float | None = field_float("y")
+    lbs_coords: bool | None = field_bool("Lbs_coords")
+
+    # State-related
+    fuel: int | None = field_int("fuel")
+    speed: float | None = field_float("speed")
+    flags: int | None = field_int("flags")
+    max_speed: float | None = field_float("max_speed")
+    length: float | None = field_float("length")
