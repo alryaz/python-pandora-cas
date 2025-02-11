@@ -234,7 +234,7 @@ class PandoraOnlineDevice:
         limit: int = 20,
     ) -> list[TrackingEvent]:
         return await self.account.async_fetch_events(
-            timestamp_from, timestamp_to, limit
+            timestamp_from, timestamp_to, limit, self.device_id
         )
 
     async def async_update_system_info(self) -> dict[str, Any]:
