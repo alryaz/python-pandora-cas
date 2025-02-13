@@ -476,6 +476,8 @@ class CurrentState(_BaseGetDictArgs):
         if can := data.get("can"):
             # noinspection PyTypeChecker
             data = ChainMap(can, data)
+        if heater := data.get("heater"):
+            data = ChainMap(heater, data)
         return cls.get_dict_args(data, **kwargs)
 
     @classmethod
@@ -543,6 +545,11 @@ class CurrentState(_BaseGetDictArgs):
 
 # noinspection SpellCheckingInspection
 IGNORED_ATTRIBUTES[CurrentState] = {
+    # Needs mapping
+    "dtime_rec": None,
+    # Parsed separately
+    "can": None,
+    "heater": None,
     # Unparsed, and likely unneeded attributes
     "benish_mode": None,
     "cmd_code": None,
